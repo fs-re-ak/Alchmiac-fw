@@ -29,6 +29,8 @@
 #include "gpios.h"
 #include "ads1299.h"
 #include "ads1118.h"
+#include "p2p_server_app.h"
+#include "ism330.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -54,7 +56,15 @@ UART_HandleTypeDef huart1;
 DMA_HandleTypeDef hdma_usart1_tx;
 
 /* USER CODE BEGIN PV */
+SPI_HandleTypeDef hspi1;
+I2C_HandleTypeDef hi2c3;
 TIM_HandleTypeDef htim2;
+TIM_HandleTypeDef htim17;
+
+
+static uint32_t led_counter = 0;
+static GPIO_PinState led_state = GPIO_PIN_RESET;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -66,6 +76,9 @@ static void MX_RTC_Init(void);
 static void MX_IPCC_Init(void);
 static void MX_RF_Init(void);
 static void MX_TIM2_Init(void);
+static void MX_TIM17_Init(void);
+void MX_I2C3_Init(void);
+void my_MX_SPI1_Init(void);
 
 /* USER CODE BEGIN PFP */
 void PeriphClock_Config(void);
@@ -112,12 +125,15 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  my_MX_SPI1_Init();
+  MX_I2C3_Init();
   MX_DMA_Init();
   MX_RTC_Init();
   MX_USART1_UART_Init();
   MX_RF_Init();
   /* USER CODE BEGIN 2 */
   MX_TIM2_Init();
+  MX_TIM17_Init();
 
   /* USER CODE END 2 */
 
@@ -126,6 +142,9 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  ADS1299_Init();
+  ism330_Init();
+
   while(1)
   {
     /* USER CODE END WHILE */
@@ -361,6 +380,63 @@ void MX_USART1_UART_Init(void)
 
 }
 
+// I2C3 initialization function
+void MX_I2C3_Init(void)
+{
+
+	/* SPI1 clock enable */
+	__HAL_RCC_I2C3_CLK_ENABLE();
+
+
+	hi2c3.Instance = I2C3;
+	  hi2c3.Init.Timing = 0x00707CBB;
+	  hi2c3.Init.OwnAddress1 = 0;
+	  hi2c3.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
+	  hi2c3.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
+	  hi2c3.Init.OwnAddress2 = 0;
+	  hi2c3.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
+	  hi2c3.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
+	  hi2c3.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
+
+    if (HAL_I2C_Init(&hi2c3) != HAL_OK)
+    {
+        // Initialization error
+        Error_Handler();
+    }
+}
+
+
+
+// SPI1 initialization function
+void my_MX_SPI1_Init(void)
+{
+
+	/* SPI1 clock enable */
+	__HAL_RCC_SPI1_CLK_ENABLE();
+
+
+	  hspi1.Instance = SPI1;
+	  hspi1.Init.Mode = SPI_MODE_MASTER;
+	  hspi1.Init.Direction = SPI_DIRECTION_2LINES;
+	  hspi1.Init.DataSize = SPI_DATASIZE_8BIT;
+	  hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
+	  hspi1.Init.CLKPhase = SPI_PHASE_2EDGE;
+	  hspi1.Init.NSS = SPI_NSS_SOFT;
+	  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_16;
+	  hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
+	  hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
+	  hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
+	  hspi1.Init.CRCPolynomial = 7;
+	  hspi1.Init.CRCLength = SPI_CRC_LENGTH_DATASIZE;
+	  hspi1.Init.NSSPMode = SPI_NSS_PULSE_DISABLE;
+    if (HAL_SPI_Init(&hspi1) != HAL_OK)
+    {
+        // Initialization error
+        Error_Handler();
+    }
+}
+
+
 /**
   * Enable DMA controller clock
   */
@@ -415,6 +491,12 @@ static void MX_GPIO_Init(void)
 	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
 	HAL_GPIO_Init(LED_A_GPIO_Port, &GPIO_InitStruct);
 
+	GPIO_InitStruct.Pin = LED_B_Pin;
+	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+	HAL_GPIO_Init(LED_B_GPIO_Port, &GPIO_InitStruct);
+
 	GPIO_InitStruct.Pin = ADS1118_CS_Pin;
 	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
 	GPIO_InitStruct.Pull = GPIO_PULLUP;
@@ -461,6 +543,14 @@ static void MX_GPIO_Init(void)
 	GPIO_InitStruct.Alternate = GPIO_AF5_SPI1;
 	HAL_GPIO_Init(SPI1_MISO_GPIO_Port, &GPIO_InitStruct);
 
+	/* Configure I2C3 SDA (PB11) and SCL (PB13) */
+	GPIO_InitStruct.Pin = GPIO_PIN_11 | GPIO_PIN_13;
+	GPIO_InitStruct.Mode = GPIO_MODE_AF_OD;
+	GPIO_InitStruct.Pull = GPIO_PULLUP;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+	GPIO_InitStruct.Alternate = GPIO_AF4_I2C3;
+	HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
 	HAL_GPIO_WritePin(ADS1299_CS_GPIO_Port, ADS1299_CS_Pin, GPIO_PIN_SET);
 	HAL_GPIO_WritePin(ADS1118_CS_GPIO_Port, ADS1118_CS_Pin, GPIO_PIN_SET);
 	HAL_GPIO_WritePin(ADS1299_nRESET_GPIO_Port, ADS1299_nRESET_Pin|ADS1299_nPWDN_Pin, GPIO_PIN_RESET);
@@ -471,6 +561,7 @@ static void MX_GPIO_Init(void)
 	HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);          // Enable the interrupt
 
 	HAL_GPIO_WritePin(LED_A_GPIO_Port, LED_A_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(LED_B_GPIO_Port, LED_B_Pin, GPIO_PIN_RESET);
 
 
 
@@ -770,17 +861,14 @@ void PeriphClock_Config(void)
 
 
 
-//uint8_t  APP_BLE_Send_EEGData_Notification(uint8_t* payload, uint8_t length);
-
-
 static void MX_TIM2_Init(void)
 {
     __HAL_RCC_TIM2_CLK_ENABLE();
 
     htim2.Instance = TIM2;
-    htim2.Init.Prescaler = (uint32_t)(HAL_RCC_GetPCLK1Freq() / 1000) - 1;
+    htim2.Init.Prescaler = (uint32_t)(HAL_RCC_GetPCLK1Freq() / 2000) - 1;
     htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-    htim2.Init.Period = 39 - 1;
+    htim2.Init.Period = 500;
     htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
     htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
 
@@ -804,15 +892,68 @@ static void MX_TIM2_Init(void)
 // Timer interrupt handler
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
-    if(htim->Instance == TIM2)
+    if (htim->Instance == TIM2)
     {
-    	fill_and_send_packet();
+        led_counter += 1; // Each interrupt = 1ms (from timer settings)
+
+        if (is_connected())
+        {
+            // Force LED ON and reset state/counter
+            HAL_GPIO_WritePin(LED_B_GPIO_Port, LED_B_Pin, GPIO_PIN_SET);
+            led_state = GPIO_PIN_SET;
+            led_counter = 0;
+        }
+        else
+        {
+            if (led_counter >= 1) // 2 seconds
+            {
+                led_counter = 0;
+                led_state = (led_state == GPIO_PIN_SET) ? GPIO_PIN_RESET : GPIO_PIN_SET;
+                HAL_GPIO_WritePin(LED_B_GPIO_Port, LED_B_Pin, led_state);
+            }
+        }
+    }
+    else if (htim->Instance == TIM17){
+
+    	//Trigger IMU
+    	if(is_connected()){
+    		UTIL_SEQ_SetTask( 1<<CFG_TASK_IMU_SAMPLE_ID, CFG_SCH_PRIO_0);
+    	}
+
+    	//Trigger IMU
+
     }
 }
 
 
 
 
+
+void MX_TIM17_Init(void)
+{
+    __HAL_RCC_TIM17_CLK_ENABLE();
+
+    htim17.Instance = TIM17;
+    htim17.Init.Prescaler = (uint32_t)(HAL_RCC_GetPCLK2Freq() / 1000) - 1;  // TIM17 is on APB2
+    htim17.Init.CounterMode = TIM_COUNTERMODE_UP;
+    htim17.Init.Period = 1000 - 1;
+    htim17.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+    htim17.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+    htim17.Init.RepetitionCounter = 0;
+
+    if (HAL_TIM_Base_Init(&htim17) != HAL_OK)
+    {
+        Error_Handler();
+    }
+
+    HAL_NVIC_SetPriority(TIM1_TRG_COM_TIM17_IRQn, 5, 0);  // Different interrupt for TIM17
+    HAL_NVIC_EnableIRQ(TIM1_TRG_COM_TIM17_IRQn);
+
+    if (HAL_TIM_Base_Start_IT(&htim17) != HAL_OK)
+    {
+        Error_Handler();
+    }
+}
 
 
 

@@ -19,6 +19,7 @@
 /* USER CODE END Header */
 
 /* Includes ------------------------------------------------------------------*/
+#include <p2p_server_app.h>
 #include "main.h"
 
 #include "app_common.h"
@@ -33,8 +34,8 @@
 #include "stm32_lpm.h"
 #include "otp.h"
 
-#include "p2p_server_app.h"
 #include "hermes_ble.h"
+#include "gpios.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -149,6 +150,8 @@ typedef struct _tBLEProfileGlobalContext
   uint8_t advtServUUID[100];
   /* USER CODE BEGIN BleGlobalContext_t*/
   uint16_t eeg_service_handle; // Service and characteristic handles
+  uint16_t event_service_handle; // Service and characteristic handles
+  uint16_t motion_service_handle; // Service and characteristic handles
 
 
   /* USER CODE END BleGlobalContext_t */
@@ -168,6 +171,9 @@ typedef struct
   /* USER CODE BEGIN PTD_1*/
 
   uint16_t eeg_data_char_handle;
+  uint16_t event_char_handle;
+  uint16_t accel_char_handle;
+  uint16_t gyro_char_handle;
 
   /* USER CODE END PTD_1 */
 }BleApplicationContext_t;
@@ -278,6 +284,8 @@ static void Connection_Interval_Update_Req(void);
 
 /* USER CODE BEGIN PFP */
 static tBleStatus Add_EEG_Stream_Notify_Service(void);
+static tBleStatus Add_Event_Notify_Service(void);
+static tBleStatus Add_Motion_Notify_Service(void);
 
 /* USER CODE END PFP */
 
@@ -422,6 +430,8 @@ void APP_BLE_Init(void)
 
   /* USER CODE BEGIN APP_BLE_Init_3 */
   Add_EEG_Stream_Notify_Service();
+  Add_Event_Notify_Service();
+  Add_Motion_Notify_Service();
 
   /* USER CODE END APP_BLE_Init_3 */
 
@@ -488,7 +498,7 @@ static tBleStatus Add_EEG_Stream_Notify_Service(void)
     ret = aci_gatt_add_service(UUID_TYPE_128,
                               (Service_UUID_t *) eeg_service_uuid,
                               PRIMARY_SERVICE,
-                              2 + 3, /* 2 for service + 3 for characteristic */
+							  2 + 3, /* 2 for service + 3 for 1 characteristic */
                               &(BleApplicationContext.BleApplicationContext_legacy.eeg_service_handle));
 
     if (ret != BLE_STATUS_SUCCESS)
@@ -515,6 +525,113 @@ static tBleStatus Add_EEG_Stream_Notify_Service(void)
         return ret;
     }
 
+
+    return ret;
+}
+
+
+
+static tBleStatus Add_Event_Notify_Service(void)
+{
+    tBleStatus ret = BLE_STATUS_SUCCESS;
+    uint8_t event_service_uuid[16];
+    uint8_t event_char_uuid[16];
+
+    // Add service
+    COPY_EVENT_SERVICE_UUID(event_service_uuid);
+    ret = aci_gatt_add_service(UUID_TYPE_128,
+                              (Service_UUID_t *) event_service_uuid,
+                              PRIMARY_SERVICE,
+                              2 + 3, /* 2 for service + 3 for 1 characteristic */
+                              &(BleApplicationContext.BleApplicationContext_legacy.event_service_handle));
+
+    if (ret != BLE_STATUS_SUCCESS)
+    {
+        APP_DBG_MSG("Error adding New Notify Service - ret=0x%x\n", ret);
+        return ret;
+    }
+
+    // Add characteristic
+    COPY_EVENT_UUID(event_char_uuid);
+    ret = aci_gatt_add_char(BleApplicationContext.BleApplicationContext_legacy.event_service_handle,
+                           UUID_TYPE_128, (Char_UUID_t *) event_char_uuid,
+						   sizeof(event_packet_t)+1,
+                           CHAR_PROP_NOTIFY,
+                           ATTR_PERMISSION_NONE,
+                           GATT_NOTIFY_ATTRIBUTE_WRITE,
+                           10,
+                           CHAR_VALUE_LEN_VARIABLE,
+                           &(BleApplicationContext.event_char_handle));
+
+    if (ret != BLE_STATUS_SUCCESS)
+    {
+        APP_DBG_MSG("Error adding New Notify Characteristic - ret=0x%x\n", ret);
+        return ret;
+    }
+
+
+    return ret;
+}
+
+
+
+static tBleStatus Add_Motion_Notify_Service(void)
+{
+    tBleStatus ret = BLE_STATUS_SUCCESS;
+    uint8_t motion_service_uuid[16];
+    uint8_t accel_char_uuid[16];
+    uint8_t gyro_char_uuid[16];
+
+    // Add service
+    COPY_MOTION_SERVICE_UUID(motion_service_uuid);
+    ret = aci_gatt_add_service(UUID_TYPE_128,
+                              (Service_UUID_t *) motion_service_uuid,
+                              PRIMARY_SERVICE,
+                              2 + 3 + 3, /* 2 for service + 6 for 2 characteristic */
+                              &(BleApplicationContext.BleApplicationContext_legacy.motion_service_handle));
+
+    if (ret != BLE_STATUS_SUCCESS)
+    {
+        APP_DBG_MSG("Error adding New Notify Service - ret=0x%x\n", ret);
+        return ret;
+    }
+
+    // Add characteristic
+    COPY_ACCEL_UUID(accel_char_uuid);
+    ret = aci_gatt_add_char(BleApplicationContext.BleApplicationContext_legacy.motion_service_handle,
+                           UUID_TYPE_128, (Char_UUID_t *) accel_char_uuid,
+                           6,
+                           CHAR_PROP_NOTIFY,
+                           ATTR_PERMISSION_NONE,
+                           GATT_NOTIFY_ATTRIBUTE_WRITE,
+                           10,
+                           CHAR_VALUE_LEN_VARIABLE,
+                           &(BleApplicationContext.accel_char_handle));
+
+    if (ret != BLE_STATUS_SUCCESS)
+    {
+        APP_DBG_MSG("Error adding New Notify Characteristic - ret=0x%x\n", ret);
+        return ret;
+    }
+
+
+    // Add characteristic
+    COPY_GYRO_UUID(gyro_char_uuid);
+    ret = aci_gatt_add_char(BleApplicationContext.BleApplicationContext_legacy.motion_service_handle,
+                           UUID_TYPE_128, (Char_UUID_t *) gyro_char_uuid,
+                           6,
+                           CHAR_PROP_NOTIFY,
+                           ATTR_PERMISSION_NONE,
+                           GATT_NOTIFY_ATTRIBUTE_WRITE,
+                           10,
+                           CHAR_VALUE_LEN_VARIABLE,
+                           &(BleApplicationContext.gyro_char_handle));
+
+    if (ret != BLE_STATUS_SUCCESS)
+    {
+        APP_DBG_MSG("Error adding New Notify Characteristic - ret=0x%x\n", ret);
+        return ret;
+    }
 
     return ret;
 }
@@ -856,20 +973,6 @@ APP_BLE_ConnStatus_t APP_BLE_Get_Server_Connection_Status(void)
   return BleApplicationContext.Device_Connection_Status;
 }
 
-/* USER CODE BEGIN FD*/
-void APP_BLE_Key_Button1_Action(void)
-{
-  P2PS_APP_SW1_Button_Action();
-}
-
-void APP_BLE_Key_Button2_Action(void)
-{
-#if (L2CAP_REQUEST_NEW_CONN_PARAM != 0 )    
-  UTIL_SEQ_SetTask( 1<<CFG_TASK_CONN_UPDATE_REG_ID, CFG_SCH_PRIO_0);
-#endif
-  
-  return;
-}
 
 
 
@@ -902,8 +1005,43 @@ uint8_t  APP_BLE_Send_EEGData_Notification(uint8_t* payload, uint8_t length)
 }
 
 
+uint8_t  APP_BLE_Send_Event_Notification(event_packet_t* payload)
+{
+    uint8_t  ret = BLE_STATUS_INVALID_PARAMS;
+
+	ret = aci_gatt_update_char_value(BleApplicationContext.BleApplicationContext_legacy.event_service_handle,
+									BleApplicationContext.event_char_handle,
+									0, /* offset */
+									sizeof(event_packet_t), /* data length */
+									(uint8_t*)payload);
 
 
+    return ret;
+}
+
+
+
+
+uint8_t  APP_BLE_Send_IMU_Notification(uint8_t* accel, uint8_t* gyro)
+{
+    uint8_t  ret = BLE_STATUS_INVALID_PARAMS;
+
+	ret = aci_gatt_update_char_value(BleApplicationContext.BleApplicationContext_legacy.motion_service_handle,
+									BleApplicationContext.accel_char_handle,
+									0, /* offset */
+									6, /* data length */
+									accel);
+
+
+	ret = aci_gatt_update_char_value(BleApplicationContext.BleApplicationContext_legacy.motion_service_handle,
+									BleApplicationContext.gyro_char_handle,
+									0, /* offset */
+									6, /* data length */
+									gyro);
+
+
+    return ret;
+}
 
 
 

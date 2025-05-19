@@ -19,6 +19,7 @@
 /* USER CODE END Header */
 
 /* Includes ------------------------------------------------------------------*/
+#include <p2p_server_app.h>
 #include "app_common.h"
 #include "main.h"
 #include "app_entry.h"
@@ -32,6 +33,7 @@
 #include "dbg_trace.h"
 #include "shci.h"
 #include "otp.h"
+#include "ads1299.h"
 
 /* Private includes -----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -632,13 +634,18 @@ void HAL_GPIO_EXTI_Callback( uint16_t GPIO_Pin )
   {
   case GPIO_PIN_12:
     /* SW button 1 */
-    APP_BLE_Key_Button1_Action();
+    APP_SWA_Button_Action();
     break; 
     
   case GPIO_PIN_13:
     /* SW button 2 */
-    APP_BLE_Key_Button2_Action();
+	APP_SWB_Button_Action();
+    break;
+
+  case ADS1299_nDRDY_Pin:
+    APP_BLE_Manage_ADS1299_event();
     break; 
+
   default:
     break;
   }

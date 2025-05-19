@@ -18,14 +18,16 @@
 /* USER CODE END Header */
 
 /* Includes ------------------------------------------------------------------*/
+#include <p2p_server_app.h>
 #include "main.h"
 #include "app_common.h"
 #include "dbg_trace.h"
 #include "ble.h"
-#include "p2p_server_app.h"
 #include "stm32_seq.h"
 #include "app_ble.h"
 #include "gpios.h"
+#include "ads1299.h"
+#include "ism330.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -75,17 +77,29 @@ typedef struct
 /* USER CODE BEGIN PV */
 static uint8_t buffered_packets_array[PACKETBUFFER_DEPTH][PACKET_SIZE] = {0};
 static uint8_t buffer_index = 0;
+static uint8_t sample_index = 0;
 
 static uint8_t packet_counter = 0;
 static uint32_t sample_counter = 0; // dev only
 
+uint8_t statusBuffer[3];
 
+static event_packet_t current_event_payload;
+
+void SWA_Send_Notification(void);
+void SWB_Send_Notification(void);
+
+void SWA_Local_Notification(void);
+void SWB_Local_Notification(void);
+
+
+void get_and_send_imu_sample(void);
 
 /**
  * START of Section BLE_APP_CONTEXT
  */
 
-static P2P_Server_App_Context_t P2P_Server_App_Context;
+P2P_Server_App_Context_t P2P_Server_App_Context;
 
 /**
  * END of Section BLE_APP_CONTEXT
@@ -217,7 +231,17 @@ void P2PS_APP_Notification(P2PS_APP_ConnHandle_Not_evt_t *pNotification)
 void P2PS_APP_Init(void)
 {
 /* USER CODE BEGIN P2PS_APP_Init */
-  //UTIL_SEQ_RegTask( 1<< CFG_TASK_SW1_BUTTON_PUSHED_ID, UTIL_SEQ_RFU, P2PS_Send_Notification );
+
+
+#ifdef BLE_BUTTON_EVENTS
+	UTIL_SEQ_RegTask( 1<< CFG_TASK_SWA_BUTTON_PUSHED_ID, UTIL_SEQ_RFU, SWA_Send_Notification ); //
+	UTIL_SEQ_RegTask( 1<< CFG_TASK_SWB_BUTTON_PUSHED_ID, UTIL_SEQ_RFU, SWB_Send_Notification ); //
+	UTIL_SEQ_RegTask( 1<< CFG_TASK_IMU_SAMPLE_ID, UTIL_SEQ_RFU, get_and_send_imu_sample ); //
+
+#else
+	UTIL_SEQ_RegTask( 1<< CFG_TASK_SWA_BUTTON_PUSHED_ID, UTIL_SEQ_RFU, SWA_Local_Notification ); //
+	UTIL_SEQ_RegTask( 1<< CFG_TASK_SWB_BUTTON_PUSHED_ID, UTIL_SEQ_RFU, SWB_Local_Notification ); //
+#endif
 
 //(FS) Need to attach whatever user function here
 
@@ -250,12 +274,61 @@ void P2PS_APP_LED_BUTTON_context_Init(void){
 }
 #endif
 
-void P2PS_APP_SW1_Button_Action(void)
+void APP_SWA_Button_Action(void)
 {
-  UTIL_SEQ_SetTask( 1<<CFG_TASK_SW1_BUTTON_PUSHED_ID, CFG_SCH_PRIO_0);
-
+  UTIL_SEQ_SetTask( 1<<CFG_TASK_SWA_BUTTON_PUSHED_ID, CFG_SCH_PRIO_0);
   return;
 }
+
+void APP_SWB_Button_Action(void)
+{
+  UTIL_SEQ_SetTask( 1<<CFG_TASK_SWB_BUTTON_PUSHED_ID, CFG_SCH_PRIO_0);
+  return;
+}
+
+void SWA_Local_Notification(void)
+{
+	// insert local button management here
+}
+
+
+void SWB_Local_Notification(void)
+{
+	// insert local button management here
+}
+
+
+void SWA_Send_Notification(void)
+{
+	current_event_payload.event_type = EVENT_TYPE_BUTTON_PRESSED;
+	current_event_payload.source_id = BUTTON_ID_A;
+	current_event_payload.packet_id = packet_counter;
+
+	APP_BLE_Send_Event_Notification(&current_event_payload);
+}
+
+
+void SWB_Send_Notification(void)
+{
+	current_event_payload.event_type = EVENT_TYPE_BUTTON_PRESSED;
+	current_event_payload.source_id = BUTTON_ID_B;
+	current_event_payload.packet_id = packet_counter;
+
+	APP_BLE_Send_Event_Notification(&current_event_payload);
+}
+
+
+
+void get_and_send_imu_sample(void){
+
+	if(P2P_Server_App_Context.Notification_Status==1){
+		HAL_GPIO_WritePin(LED_A_GPIO_Port, LED_A_Pin, GPIO_PIN_SET);
+		int16_t* imu_sample = ism330_ReadIMU();
+		APP_BLE_Send_IMU_Notification((uint8_t*)imu_sample, (uint8_t*)&imu_sample[3]);
+	}
+}
+
+
 /* USER CODE END FD */
 
 /*************************************************************
@@ -265,38 +338,12 @@ void P2PS_APP_SW1_Button_Action(void)
  *************************************************************/
 /* USER CODE BEGIN FD_LOCAL_FUNCTIONS*/
 
-/*
-void P2PS_Send_Notification(void)
-{
- 
-  if(P2P_Server_App_Context.ButtonControl.ButtonStatus == 0x00){
-    P2P_Server_App_Context.ButtonControl.ButtonStatus=0x01;
-  } else {
-    P2P_Server_App_Context.ButtonControl.ButtonStatus=0x00;
-  }
-  
-   if(P2P_Server_App_Context.Notification_Status){ 
-    APP_DBG_MSG("-- P2P APPLICATION SERVER  : INFORM CLIENT BUTTON 1 PUSHED \n ");
-    APP_DBG_MSG(" \n\r");
-    P2PS_STM_App_Update_Char(P2P_NOTIFY_CHAR_UUID, (uint8_t *)&P2P_Server_App_Context.ButtonControl);
-   } else {
-    APP_DBG_MSG("-- P2P APPLICATION SERVER : CAN'T INFORM CLIENT -  NOTIFICATION DISABLED\n "); 
-   }
-
-  return;
-}*/
-
-
-
-
 
 void fill_and_send_packet(void)
 {
 
   // are we streaming ?
   if(P2P_Server_App_Context.Notification_Status){
-
-	HAL_GPIO_WritePin(LED_A_GPIO_Port, LED_A_Pin, GPIO_PIN_SET);
 
     // add a new packet to the buffer
     buffered_packets_array[buffer_index][0] = packet_counter;
@@ -321,6 +368,35 @@ void fill_and_send_packet(void)
 
   }
 
+}
+
+
+
+
+void APP_BLE_Manage_ADS1299_event(void)
+{
+	if(P2P_Server_App_Context.Notification_Status){
+
+		if(sample_index==0){
+			buffered_packets_array[buffer_index][0] = packet_counter;
+		}
+
+		ADS1299_ReadSamples(statusBuffer, &buffered_packets_array[buffer_index][sample_index*SAMPLE_SIZE+1]);
+		sample_index++;
+
+		if(sample_index >= NB_SAMPLES_PER_PACKET){
+			APP_BLE_Send_EEGData_Notification(buffered_packets_array[buffer_index], PACKET_SIZE);
+			buffer_index = (buffer_index + 1) % PACKETBUFFER_DEPTH;
+			packet_counter = (packet_counter + 1) % 128;
+			sample_index = 0;
+		}
+	}
+}
+
+
+
+uint8_t is_connected(void){
+	return P2P_Server_App_Context.Notification_Status == 1;
 }
 
 

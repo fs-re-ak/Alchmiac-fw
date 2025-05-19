@@ -20,6 +20,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "stm32wbxx_it.h"
+#include "ads1299.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 /* USER CODE END Includes */
@@ -60,6 +61,7 @@ extern UART_HandleTypeDef huart1;
 /* USER CODE BEGIN EV */
 extern IPCC_HandleTypeDef hipcc;
 extern TIM_HandleTypeDef htim2;
+extern TIM_HandleTypeDef htim17;
 
 /* USER CODE END EV */
 
@@ -283,6 +285,11 @@ void PUSH_BUTTON_SW_EXTI_IRQHandler(void)
   HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_13);
 }
 
+void EXTI9_5_IRQHandler(void)
+{
+  HAL_GPIO_EXTI_IRQHandler(ADS1299_nDRDY_Pin);
+}
+
 void RTC_WKUP_IRQHandler(void)
 {
   HAL_RTCEx_WakeUpTimerIRQHandler();
@@ -295,7 +302,7 @@ void RTC_WKUP_IRQHandler(void)
   */
 void TIM1_TRG_COM_TIM17_IRQHandler(void)
 {
-
+    HAL_TIM_IRQHandler(&htim17);
 }
 
 

@@ -28,6 +28,7 @@ extern "C" {
 
 /* Includes ------------------------------------------------------------------*/
 #include "hci_tl.h"
+#include <p2p_server_app.h>
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -48,6 +49,7 @@ typedef enum
 } APP_BLE_ConnStatus_t;
 
 /* USER CODE BEGIN ET */
+
 
 /* USER CODE END ET */
 
@@ -70,13 +72,10 @@ typedef enum
 void APP_BLE_Init(void);
 APP_BLE_ConnStatus_t APP_BLE_Get_Server_Connection_Status(void);
 
-/* USER CODE BEGIN EF */
-void APP_BLE_Key_Button1_Action(void);
-void APP_BLE_Key_Button2_Action(void);
-
 
 uint8_t  APP_BLE_Send_EEGData_Notification(uint8_t* payload, uint8_t length);
-
+uint8_t  APP_BLE_Send_Event_Notification(event_packet_t* payload);
+uint8_t  APP_BLE_Send_IMU_Notification(uint8_t* accel, uint8_t* gyro);
 
 /* USER CODE END EF */
 

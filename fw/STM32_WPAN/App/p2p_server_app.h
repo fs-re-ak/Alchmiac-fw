@@ -26,6 +26,7 @@ extern "C" {
 #endif
 
 /* Includes ------------------------------------------------------------------*/
+#include <stdint.h>
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -44,6 +45,8 @@ typedef struct
   P2PS_APP__Opcode_Notification_evt_t   P2P_Evt_Opcode;
   uint16_t                              ConnectionHandle;
 }P2PS_APP_ConnHandle_Not_evt_t;
+
+
 /* USER CODE BEGIN ET */
 
 /* USER CODE END ET */
@@ -61,6 +64,29 @@ typedef struct
 /* Exported macros ------------------------------------------------------------*/
 /* USER CODE BEGIN EM */
 
+// event_type
+#define EVENT_TYPE_BUTTON_PRESSED    0x01
+#define EVENT_TYPE_BUTTON_RELEASED   0x02
+#define EVENT_TYPE_LONG_PRESS        0x03
+#define EVENT_TYPE_DOUBLE_CLICK      0x04
+
+// source_id
+#define BUTTON_ID_A           		 0x01
+#define BUTTON_ID_B       			 0x02
+
+
+typedef struct {
+    uint8_t event_type;     // What happened (e.g., pressed, released, held)
+    uint8_t source_id;      // Which button or event source
+    uint8_t packet_id;  	// Optional: time since boot or epoch
+} __attribute__((packed)) event_packet_t;
+
+
+
+
+
+#define BLE_BUTTON_EVENTS 1
+
 /* USER CODE END EM */
 
 /* Exported functions ---------------------------------------------*/
@@ -68,6 +94,12 @@ typedef struct
   void P2PS_APP_Notification( P2PS_APP_ConnHandle_Not_evt_t *pNotification );
 /* USER CODE BEGIN EF */
   void P2PS_APP_SW1_Button_Action( void );
+  void APP_BLE_Manage_ADS1299_event(void);
+
+  void APP_SWA_Button_Action(void);
+  void APP_SWB_Button_Action(void);
+
+  uint8_t is_connected(void);
 
 /* USER CODE END EF */
 

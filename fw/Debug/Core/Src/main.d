@@ -64,7 +64,8 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
  ../Middlewares/ST/STM32_WPAN/utilities/otp.h \
  ../Middlewares/ST/STM32_WPAN/utilities/utilities_common.h \
  ../Core/Inc/app_conf.h ../Core/Inc/gpios.h ../Core/Inc/ads1299.h \
- ../Core/Inc/ads1118.h
+ ../Core/Inc/ads1118.h ../STM32_WPAN/App/p2p_server_app.h \
+ ../Core/Inc/ism330.h ../Core/Inc/main.h
 ../Core/Inc/main.h:
 ../Drivers/STM32WBxx_HAL_Driver/Inc/stm32wbxx_hal.h:
 ../Core/Inc/stm32wbxx_hal_conf.h:
@@ -138,3 +139,6 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
 ../Core/Inc/gpios.h:
 ../Core/Inc/ads1299.h:
 ../Core/Inc/ads1118.h:
+../STM32_WPAN/App/p2p_server_app.h:
+../Core/Inc/ism330.h:
+../Core/Inc/main.h:

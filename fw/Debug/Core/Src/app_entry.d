@@ -1,4 +1,5 @@
-Core/Src/app_entry.o: ../Core/Src/app_entry.c ../Core/Inc/app_common.h \
+Core/Src/app_entry.o: ../Core/Src/app_entry.c \
+ ../STM32_WPAN/App/p2p_server_app.h ../Core/Inc/app_common.h \
  ../Core/Inc/app_conf.h \
  ../Middlewares/ST/STM32_WPAN/interface/patterns/ble_thread/hw.h \
  ../Core/Inc/hw_conf.h ../Core/Inc/hw_if.h \
@@ -116,7 +117,9 @@ Core/Src/app_entry.o: ../Core/Src/app_entry.c ../Core/Inc/app_common.h \
  ../Middlewares/ST/STM32_WPAN/interface/patterns/ble_thread/shci/shci.h \
  ../Middlewares/ST/STM32_WPAN/interface/patterns/ble_thread/tl/mbox_def.h \
  ../Middlewares/ST/STM32_WPAN/utilities/otp.h \
- ../Middlewares/ST/STM32_WPAN/utilities/utilities_common.h
+ ../Middlewares/ST/STM32_WPAN/utilities/utilities_common.h \
+ ../Core/Inc/ads1299.h
+../STM32_WPAN/App/p2p_server_app.h:
 ../Core/Inc/app_common.h:
 ../Core/Inc/app_conf.h:
 ../Middlewares/ST/STM32_WPAN/interface/patterns/ble_thread/hw.h:
@@ -243,3 +246,4 @@ Core/Src/app_entry.o: ../Core/Src/app_entry.c ../Core/Inc/app_common.h \
 ../Middlewares/ST/STM32_WPAN/interface/patterns/ble_thread/tl/mbox_def.h:
 ../Middlewares/ST/STM32_WPAN/utilities/otp.h:
 ../Middlewares/ST/STM32_WPAN/utilities/utilities_common.h:
+../Core/Inc/ads1299.h:

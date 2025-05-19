@@ -1,5 +1,6 @@
 STM32_WPAN/App/p2p_server_app.o: ../STM32_WPAN/App/p2p_server_app.c \
- ../Core/Inc/main.h ../Drivers/STM32WBxx_HAL_Driver/Inc/stm32wbxx_hal.h \
+ ../STM32_WPAN/App/p2p_server_app.h ../Core/Inc/main.h \
+ ../Drivers/STM32WBxx_HAL_Driver/Inc/stm32wbxx_hal.h \
  ../Core/Inc/stm32wbxx_hal_conf.h \
  ../Drivers/STM32WBxx_HAL_Driver/Inc/stm32wbxx_hal_dma.h \
  ../Drivers/STM32WBxx_HAL_Driver/Inc/stm32wbxx_hal_def.h \
@@ -107,11 +108,12 @@ STM32_WPAN/App/p2p_server_app.o: ../STM32_WPAN/App/p2p_server_app.c \
  ../Middlewares/ST/STM32_WPAN/ble/svc/Inc/template_stm.h \
  ../Middlewares/ST/STM32_WPAN/ble/svc/Inc/svc_ctl.h \
  ../Middlewares/ST/STM32_WPAN/ble/svc/Inc/uuid.h \
- ../STM32_WPAN/App/p2p_server_app.h ../Utilities/sequencer/stm32_seq.h \
- ../STM32_WPAN/App/app_ble.h \
+ ../Utilities/sequencer/stm32_seq.h ../STM32_WPAN/App/app_ble.h \
  ../Middlewares/ST/STM32_WPAN/interface/patterns/ble_thread/tl/hci_tl.h \
  ../Middlewares/ST/STM32_WPAN/interface/patterns/ble_thread/tl/tl.h \
- ../Core/Inc/gpios.h
+ ../Core/Inc/gpios.h ../Core/Inc/ads1299.h ../Core/Inc/ism330.h \
+ ../Core/Inc/main.h
+../STM32_WPAN/App/p2p_server_app.h:
 ../Core/Inc/main.h:
 ../Drivers/STM32WBxx_HAL_Driver/Inc/stm32wbxx_hal.h:
 ../Core/Inc/stm32wbxx_hal_conf.h:
@@ -225,9 +227,11 @@ STM32_WPAN/App/p2p_server_app.o: ../STM32_WPAN/App/p2p_server_app.c \
 ../Middlewares/ST/STM32_WPAN/ble/svc/Inc/template_stm.h:
 ../Middlewares/ST/STM32_WPAN/ble/svc/Inc/svc_ctl.h:
 ../Middlewares/ST/STM32_WPAN/ble/svc/Inc/uuid.h:
-../STM32_WPAN/App/p2p_server_app.h:
 ../Utilities/sequencer/stm32_seq.h:
 ../STM32_WPAN/App/app_ble.h:
 ../Middlewares/ST/STM32_WPAN/interface/patterns/ble_thread/tl/hci_tl.h:
 ../Middlewares/ST/STM32_WPAN/interface/patterns/ble_thread/tl/tl.h:
 ../Core/Inc/gpios.h:
+../Core/Inc/ads1299.h:
+../Core/Inc/ism330.h:
+../Core/Inc/main.h:

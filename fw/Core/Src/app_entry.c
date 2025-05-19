@@ -3,11 +3,11 @@
   ******************************************************************************
   * @file    app_entry.c
   * @author  MCD Application Team
-  * @brief   Entry point of the application
+  * @brief   Entry point of the Application
   ******************************************************************************
   * @attention
   *
-  * Copyright (c) 2025 STMicroelectronics.
+  * Copyright (c) 2021 STMicroelectronics.
   * All rights reserved.
   *
   * This software is licensed under terms that can be found in the LICENSE file
@@ -42,14 +42,17 @@
 extern RTC_HandleTypeDef hrtc;
 
 /* USER CODE BEGIN PTD */
-
+/* Section specific to button management using UART */
+EXTI_HandleTypeDef exti_handle;
 /* USER CODE END PTD */
 
 /* Private defines -----------------------------------------------------------*/
 #define POOL_SIZE (CFG_TLBLE_EVT_QUEUE_LENGTH*4U*DIVC((sizeof(TL_PacketHeader_t) + TL_BLE_EVENT_FRAME_SIZE), 4U))
 
 /* USER CODE BEGIN PD */
-
+/* Section specific to button management using UART */
+#define C_SIZE_CMD_STRING       256U
+#define RX_BUFFER_SIZE          8U
 /* USER CODE END PD */
 
 /* Private macros ------------------------------------------------------------*/
@@ -64,7 +67,10 @@ PLACE_IN_SECTION("MB_MEM2") ALIGN(4) static uint8_t SystemSpareEvtBuffer[sizeof(
 PLACE_IN_SECTION("MB_MEM2") ALIGN(4) static uint8_t BleSpareEvtBuffer[sizeof(TL_PacketHeader_t) + TL_EVT_HDR_SIZE + 255];
 
 /* USER CODE BEGIN PV */
-
+/* Section specific to button management using UART */
+static uint8_t aRxBuffer[RX_BUFFER_SIZE];
+static uint8_t CommandString[C_SIZE_CMD_STRING];
+static uint16_t indexReceiveChar = 0;
 /* USER CODE END PV */
 
 /* Private functions prototypes-----------------------------------------------*/
@@ -84,7 +90,12 @@ static void APPE_SysEvtError(void * pPayload);
 static void Init_Rtc(void);
 
 /* USER CODE BEGIN PFP */
+static void Button_Init( void );
 
+/* Section specific to button management using UART */
+static void RxUART_Init(void);
+static void RxCpltCallback(void);
+static void UartCmdExecute(void);
 /* USER CODE END PFP */
 
 /* Functions Definition ------------------------------------------------------*/
@@ -117,6 +128,18 @@ void MX_APPE_Init(void)
   HW_TS_Init(hw_ts_InitMode_Full, &hrtc); /**< Initialize the TimerServer */
 
 /* USER CODE BEGIN APPE_Init_1 */
+  //APPD_Init();
+  
+  /**
+   * The Standby mode should not be entered before the initialization is over
+   * The default state of the Low Power Manager is to allow the Standby Mode so an request is needed here
+   */
+  UTIL_LPM_SetOffMode(1 << CFG_LPM_APP, UTIL_LPM_DISABLE);
+
+  //Initialize user buttons
+  //Button_Init();
+
+  //RxUART_Init();
 
 /* USER CODE END APPE_Init_1 */
   appe_Tl_Init();	/* Initialize all transport layers */
@@ -160,7 +183,6 @@ void Init_Exti(void)
 }
 
 /* USER CODE BEGIN FD */
-
 /* USER CODE END FD */
 
 /*************************************************************
@@ -505,6 +527,17 @@ static void APPE_SysEvtReadyProcessing(void * pPayload)
 }
 
 /* USER CODE BEGIN FD_LOCAL_FUNCTIONS */
+static void Button_Init( void )
+{
+#if (CFG_BUTTON_SUPPORTED == 1)
+  /**
+   * Button Initialization
+   */
+
+#endif
+
+  return;
+}
 
 /* USER CODE END FD_LOCAL_FUNCTIONS */
 
@@ -593,5 +626,74 @@ void shci_cmd_resp_wait(uint32_t timeout)
 }
 
 /* USER CODE BEGIN FD_WRAP_FUNCTIONS */
+void HAL_GPIO_EXTI_Callback( uint16_t GPIO_Pin )
+{
+  switch (GPIO_Pin)
+  {
+  case GPIO_PIN_12:
+    /* SW button 1 */
+    APP_BLE_Key_Button1_Action();
+    break; 
+    
+  case GPIO_PIN_13:
+    /* SW button 2 */
+    APP_BLE_Key_Button2_Action();
+    break; 
+  default:
+    break;
+  }
+  return;
+}
+
+static void RxUART_Init(void)
+{
+  HW_UART_Receive_IT((hw_uart_id_t)CFG_DEBUG_TRACE_UART, aRxBuffer, 1U, RxCpltCallback);
+}
+
+static void RxCpltCallback(void)
+{
+  /* Filling buffer and wait for '\r' char */
+  if (indexReceiveChar < C_SIZE_CMD_STRING)
+  {
+    if (aRxBuffer[0] == '\r')
+    {
+      APP_DBG_MSG("received %s\n", CommandString);
+
+      UartCmdExecute();
+
+      /* Clear receive buffer and character counter*/
+      indexReceiveChar = 0;
+      memset(CommandString, 0, C_SIZE_CMD_STRING);
+    }
+    else
+    {
+      CommandString[indexReceiveChar++] = aRxBuffer[0];
+    }
+  }
+
+  /* Once a character has been sent, put back the device in reception mode */
+  HW_UART_Receive_IT((hw_uart_id_t)CFG_DEBUG_TRACE_UART, aRxBuffer, 1U, RxCpltCallback);
+}
+
+static void UartCmdExecute(void)
+{
+  /* Parse received CommandString */
+  if(strcmp((char const*)CommandString, "SW1") == 0)
+  {
+    APP_DBG_MSG("SW1 OK\n");
+
+    HAL_EXTI_GenerateSWI(&exti_handle);
+  }
+  else if (strcmp((char const*)CommandString, "SW2") == 0)
+  {
+    APP_DBG_MSG("SW2 OK\n");
+
+    HAL_EXTI_GenerateSWI(&exti_handle);
+  }
+  else
+  {
+    APP_DBG_MSG("NOT RECOGNIZED COMMAND : %s\n", CommandString);
+  }
+}
 
 /* USER CODE END FD_WRAP_FUNCTIONS */

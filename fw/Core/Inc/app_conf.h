@@ -7,7 +7,7 @@
   ******************************************************************************
   * @attention
   *
-  * Copyright (c) 2025 STMicroelectronics.
+  * Copyright (c) 2021 STMicroelectronics.
   * All rights reserved.
   *
   * This software is licensed under terms that can be found in the LICENSE file
@@ -46,6 +46,7 @@
  * Define BD_ADDR type: define proper address. Can only be GAP_PUBLIC_ADDR (0x00) or GAP_STATIC_RANDOM_ADDR (0x01)
  */
 #define CFG_IDENTITY_ADDRESS              GAP_PUBLIC_ADDR
+
 /**
  * Define privacy: PRIVACY_DISABLED or PRIVACY_ENABLED
  */
@@ -187,8 +188,8 @@
   /*  L2CAP Connection Update request parameters used for test only with smart Phone */
 #define L2CAP_REQUEST_NEW_CONN_PARAM             1
 
-#define L2CAP_INTERVAL_MIN              CONN_P(1000) /* 1s */
-#define L2CAP_INTERVAL_MAX              CONN_P(1000) /* 1s */
+#define L2CAP_INTERVAL_MIN              CONN_P(15) /* 15ms */
+#define L2CAP_INTERVAL_MAX              CONN_P(50) /* 50ms */
 #define L2CAP_PERIPHERAL_LATENCY             0x0000
 #define L2CAP_TIMEOUT_MULTIPLIER        0x1F4
 
@@ -224,7 +225,7 @@
  * Maximum supported ATT_MTU size
  * This parameter is ignored by the CPU2 when CFG_BLE_OPTIONS has SHCI_C2_BLE_INIT_OPTIONS_LL_ONLY flag set
  */
-#define CFG_BLE_MAX_ATT_MTU             (156)
+#define CFG_BLE_MAX_ATT_MTU             (260) //required to transmit larger packets
 
 /**
  * Size of the storage area for Attribute values
@@ -656,6 +657,9 @@ typedef enum
 #define MAX_DBG_TRACE_MSG_SIZE   1024
 
 /* USER CODE BEGIN Defines */
+#define CFG_LED_SUPPORTED         1
+#define CFG_BUTTON_SUPPORTED      1
+#define PUSH_BUTTON_SW_EXTI_IRQHandler                      EXTI15_10_IRQHandler
 
 /* USER CODE END Defines */
 
@@ -679,7 +683,7 @@ typedef enum
 #endif
   CFG_TASK_HCI_ASYNCH_EVT_ID,
   /* USER CODE BEGIN CFG_Task_Id_With_HCI_Cmd_t */
-
+  CFG_TASK_SW1_BUTTON_PUSHED_ID,
   /* USER CODE END CFG_Task_Id_With_HCI_Cmd_t */
   CFG_LAST_TASK_ID_WITH_HCICMD,                                               /**< Shall be LAST in the list */
 } CFG_Task_Id_With_HCI_Cmd_t;
@@ -707,6 +711,7 @@ typedef enum
   /* USER CODE BEGIN CFG_SCH_Prio_Id_t */
 
   /* USER CODE END CFG_SCH_Prio_Id_t */
+  CFG_SCH_PRIO_NBR
 } CFG_SCH_Prio_Id_t;
 
 /**

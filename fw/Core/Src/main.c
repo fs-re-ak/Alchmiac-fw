@@ -6,7 +6,7 @@
   ******************************************************************************
   * @attention
   *
-  * Copyright (c) 2025 STMicroelectronics.
+  * Copyright (c) 2021 STMicroelectronics.
   * All rights reserved.
   *
   * This software is licensed under terms that can be found in the LICENSE file
@@ -21,7 +21,14 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "stm32_lpm.h"
+#include "stm32_seq.h"
+#include "dbg_trace.h"
+#include "hw_conf.h"
+#include "otp.h"
+#include "gpios.h"
+#include "ads1299.h"
+#include "ads1118.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -31,7 +38,6 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -48,7 +54,7 @@ UART_HandleTypeDef huart1;
 DMA_HandleTypeDef hdma_usart1_tx;
 
 /* USER CODE BEGIN PV */
-
+TIM_HandleTypeDef htim2;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -59,8 +65,11 @@ static void MX_DMA_Init(void);
 static void MX_RTC_Init(void);
 static void MX_IPCC_Init(void);
 static void MX_RF_Init(void);
-/* USER CODE BEGIN PFP */
+static void MX_TIM2_Init(void);
 
+/* USER CODE BEGIN PFP */
+void PeriphClock_Config(void);
+void fill_and_send_packet(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -76,7 +85,6 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -87,20 +95,19 @@ int main(void)
   MX_APPE_Config();
 
   /* USER CODE BEGIN Init */
-
   /* USER CODE END Init */
 
   /* Configure the system clock */
   SystemClock_Config();
 
-  /* Configure the peripherals common clocks */
+/* Configure the peripherals common clocks */
   PeriphCommonClock_Config();
 
   /* IPCC initialisation */
   MX_IPCC_Init();
 
   /* USER CODE BEGIN SysInit */
-
+  PeriphClock_Config();
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
@@ -110,6 +117,7 @@ int main(void)
   MX_USART1_UART_Init();
   MX_RF_Init();
   /* USER CODE BEGIN 2 */
+  MX_TIM2_Init();
 
   /* USER CODE END 2 */
 
@@ -118,7 +126,7 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  while (1)
+  while(1)
   {
     /* USER CODE END WHILE */
     MX_APPE_Process();
@@ -199,6 +207,19 @@ void PeriphCommonClock_Config(void)
     Error_Handler();
   }
   /* USER CODE BEGIN Smps */
+
+#if (CFG_USE_SMPS != 0)
+  /**
+   *  Configure and enable SMPS
+   *
+   *  The SMPS configuration is not yet supported by CubeMx
+   *  when SMPS output voltage is set to 1.4V, the RF output power is limited to 3.7dBm
+   *  the SMPS output voltage shall be increased for higher RF output power
+   */
+  LL_PWR_SMPS_SetStartupCurrent(LL_PWR_SMPS_STARTUP_CURRENT_80MA);
+  LL_PWR_SMPS_SetOutputVoltageLevel(LL_PWR_SMPS_OUTPUT_VOLTAGE_1V40);
+  LL_PWR_SMPS_Enable();
+#endif
 
   /* USER CODE END Smps */
 }
@@ -281,7 +302,13 @@ static void MX_RTC_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN RTC_Init 2 */
-
+  /* Disable RTC registers write protection */
+  LL_RTC_DisableWriteProtection(RTC);
+  
+  LL_RTC_WAKEUP_SetClock(RTC, CFG_RTC_WUCKSEL_DIVIDER);
+  
+  /* Enable RTC registers write protection */
+  LL_RTC_EnableWriteProtection(RTC);
   /* USER CODE END RTC_Init 2 */
 
 }
@@ -314,19 +341,19 @@ void MX_USART1_UART_Init(void)
   huart1.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
   if (HAL_UART_Init(&huart1) != HAL_OK)
   {
-    Error_Handler();
+	Error_Handler();
   }
   if (HAL_UARTEx_SetTxFifoThreshold(&huart1, UART_TXFIFO_THRESHOLD_1_8) != HAL_OK)
   {
-    Error_Handler();
+	Error_Handler();
   }
   if (HAL_UARTEx_SetRxFifoThreshold(&huart1, UART_RXFIFO_THRESHOLD_1_8) != HAL_OK)
   {
-    Error_Handler();
+	Error_Handler();
   }
   if (HAL_UARTEx_DisableFifoMode(&huart1) != HAL_OK)
   {
-    Error_Handler();
+	Error_Handler();
   }
   /* USER CODE BEGIN USART1_Init 2 */
 
@@ -369,6 +396,87 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOE_CLK_ENABLE();
   __HAL_RCC_GPIOH_CLK_ENABLE();
+
+
+	/* Configure PC12 and PC13 as external interrupt inputs */
+	/* Configure GPIO pins : PC12 and PC13 */
+	GPIO_InitStruct.Pin = GPIO_PIN_12 | GPIO_PIN_13;
+	GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;  // Interrupt on falling edge
+	GPIO_InitStruct.Pull = GPIO_NOPULL;           // No pull-up or pull-down resistors
+	HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+	/* Enable and set EXTI line interrupt priority */
+	HAL_NVIC_SetPriority(EXTI15_10_IRQn, 2, 0);   // Priority level 2
+	HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);          // Enable the interrupt
+
+	GPIO_InitStruct.Pin = LED_A_Pin;
+	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+	HAL_GPIO_Init(LED_A_GPIO_Port, &GPIO_InitStruct);
+
+	GPIO_InitStruct.Pin = ADS1118_CS_Pin;
+	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStruct.Pull = GPIO_PULLUP;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+	HAL_GPIO_Init(ADS1118_CS_GPIO_Port, &GPIO_InitStruct);
+
+	// Configure GPIO pin for DRDY (interrupt from ADS1299)
+	GPIO_InitStruct.Pin = ADS1299_nDRDY_Pin;
+	GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;  // Interrupt on falling edge
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	HAL_GPIO_Init(ADS1299_nDRDY_GPIO_Port, &GPIO_InitStruct);
+
+	GPIO_InitStruct.Pin = ADS1299_CS_Pin;
+	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStruct.Pull = GPIO_PULLUP;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+	HAL_GPIO_Init(ADS1299_CS_GPIO_Port, &GPIO_InitStruct);
+
+	GPIO_InitStruct.Pin = ADS1299_nRESET_Pin|ADS1299_nPWDN_Pin;
+	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+	HAL_GPIO_Init(ADS1299_nRESET_GPIO_Port, &GPIO_InitStruct);
+
+	/*Configure GPIO pins : PCPin PCPin PCPin */
+	GPIO_InitStruct.Pin = ADS1299_START_Pin;
+	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+	HAL_GPIO_Init(ADS1299_START_GPIO_Port, &GPIO_InitStruct);
+
+	/**SPI1 GPIO Configuration */
+	GPIO_InitStruct.Pin = SPI1_SCLK_Pin|SPI1_MOSI_Pin;
+	GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+	GPIO_InitStruct.Alternate = GPIO_AF5_SPI1;
+	HAL_GPIO_Init(SPI1_SCLK_GPIO_Port, &GPIO_InitStruct);
+
+	GPIO_InitStruct.Pin = SPI1_MISO_Pin;
+	GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+	GPIO_InitStruct.Alternate = GPIO_AF5_SPI1;
+	HAL_GPIO_Init(SPI1_MISO_GPIO_Port, &GPIO_InitStruct);
+
+	HAL_GPIO_WritePin(ADS1299_CS_GPIO_Port, ADS1299_CS_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(ADS1118_CS_GPIO_Port, ADS1118_CS_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(ADS1299_nRESET_GPIO_Port, ADS1299_nRESET_Pin|ADS1299_nPWDN_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(ADS1299_START_GPIO_Port, ADS1299_START_Pin, GPIO_PIN_SET);
+
+	/* Enable and set EXTI line interrupt priority */
+	HAL_NVIC_SetPriority(EXTI9_5_IRQn, 2, 0);   // Priority level 2
+	HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);          // Enable the interrupt
+
+	HAL_GPIO_WritePin(LED_A_GPIO_Port, LED_A_Pin, GPIO_PIN_RESET);
+
+
+
+#if 0
+
+	// TO DELETE, if not needed (2025-04-06)
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOH, CS_DISP_Pin|GPIO_SELECT2_Pin, GPIO_PIN_RESET);
@@ -601,12 +709,115 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   GPIO_InitStruct.Alternate = GPIO_AF14_TIM16;
   HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
+#endif
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */
 }
 
+
+
 /* USER CODE BEGIN 4 */
+void PeriphClock_Config(void)
+{
+  #if (CFG_USB_INTERFACE_ENABLE != 0)
+	RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = { 0 };
+	RCC_CRSInitTypeDef RCC_CRSInitStruct = { 0 };
+
+	/**
+   * This prevents the CPU2 to disable the HSI48 oscillator when
+   * it does not use anymore the RNG IP
+   */
+  LL_HSEM_1StepLock( HSEM, 5 );
+
+  LL_RCC_HSI48_Enable();
+
+	while(!LL_RCC_HSI48_IsReady());
+
+	/* Select HSI48 as USB clock source */
+	PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_USB;
+	PeriphClkInitStruct.UsbClockSelection = RCC_USBCLKSOURCE_HSI48;
+	HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct);
+
+	/*Configure the clock recovery system (CRS)**********************************/
+
+	/* Enable CRS Clock */
+	__HAL_RCC_CRS_CLK_ENABLE();
+
+	/* Default Synchro Signal division factor (not divided) */
+	RCC_CRSInitStruct.Prescaler = RCC_CRS_SYNC_DIV1;
+
+	/* Set the SYNCSRC[1:0] bits according to CRS_Source value */
+	RCC_CRSInitStruct.Source = RCC_CRS_SYNC_SOURCE_USB;
+
+	/* HSI48 is synchronized with USB SOF at 1KHz rate */
+	RCC_CRSInitStruct.ReloadValue = RCC_CRS_RELOADVALUE_DEFAULT;
+	RCC_CRSInitStruct.ErrorLimitValue = RCC_CRS_ERRORLIMIT_DEFAULT;
+
+	RCC_CRSInitStruct.Polarity = RCC_CRS_SYNC_POLARITY_RISING;
+
+	/* Set the TRIM[5:0] to the default value*/
+	RCC_CRSInitStruct.HSI48CalibrationValue = RCC_CRS_HSI48CALIBRATION_DEFAULT;
+
+	/* Start automatic synchronization */
+	HAL_RCCEx_CRSConfig(&RCC_CRSInitStruct);
+#endif
+
+	return;
+}
+
+
+
+
+
+//uint8_t  APP_BLE_Send_EEGData_Notification(uint8_t* payload, uint8_t length);
+
+
+static void MX_TIM2_Init(void)
+{
+    __HAL_RCC_TIM2_CLK_ENABLE();
+
+    htim2.Instance = TIM2;
+    htim2.Init.Prescaler = (uint32_t)(HAL_RCC_GetPCLK1Freq() / 1000) - 1;
+    htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
+    htim2.Init.Period = 39 - 1;
+    htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+    htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+
+    if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
+    {
+        Error_Handler(); // Handle initialization error
+    }
+
+    HAL_NVIC_SetPriority(TIM2_IRQn, 15, 0);
+    HAL_NVIC_EnableIRQ(TIM2_IRQn);
+
+        // Start the timer interrupt
+    if (HAL_TIM_Base_Start_IT(&htim2) != HAL_OK)
+    {
+        Error_Handler(); // Handle start error
+    }
+}
+
+
+
+// Timer interrupt handler
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+    if(htim->Instance == TIM2)
+    {
+    	fill_and_send_packet();
+    }
+}
+
+
+
+
+
+
+
+
+
 
 /* USER CODE END 4 */
 

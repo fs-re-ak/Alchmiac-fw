@@ -1,14 +1,13 @@
-
 /* USER CODE BEGIN Header */
 /**
   ******************************************************************************
-  * @file         stm32wbxx_hal_msp.c
-  * @brief        This file provides code for the MSP Initialization
-  *               and de-Initialization codes.
+  * @file          : stm32wbxx_hal_msp.c
+  * @brief         : This file provides code for the MSP Initialization 
+  *                  and de-Initialization codes.
   ******************************************************************************
   * @attention
   *
-  * Copyright (c) 2025 STMicroelectronics.
+  * Copyright (c) 2021 STMicroelectronics.
   * All rights reserved.
   *
   * This software is licensed under terms that can be found in the LICENSE file
@@ -101,7 +100,6 @@ void HAL_IPCC_MspInit(IPCC_HandleTypeDef* hipcc)
   /* USER CODE BEGIN IPCC_MspInit 1 */
 
   /* USER CODE END IPCC_MspInit 1 */
-
   }
 
 }
@@ -140,7 +138,15 @@ void HAL_RTC_MspInit(RTC_HandleTypeDef* hrtc)
   if(hrtc->Instance==RTC)
   {
   /* USER CODE BEGIN RTC_MspInit 0 */
+  HAL_PWR_EnableBkUpAccess(); /**< Enable access to the RTC registers */
 
+  /**
+  *  Write twice the value to flush the APB-AHB bridge
+  *  This bit shall be written in the register before writing the next one
+  */
+  HAL_PWR_EnableBkUpAccess();
+
+  __HAL_RCC_RTC_CONFIG(RCC_RTCCLKSOURCE_LSE); /**< Select LSI as RTC Input */
   /* USER CODE END RTC_MspInit 0 */
 
   /** Initializes the peripherals clock
@@ -156,9 +162,8 @@ void HAL_RTC_MspInit(RTC_HandleTypeDef* hrtc)
     __HAL_RCC_RTC_ENABLE();
     __HAL_RCC_RTCAPB_CLK_ENABLE();
   /* USER CODE BEGIN RTC_MspInit 1 */
-
+  HAL_RTCEx_EnableBypassShadow(hrtc);
   /* USER CODE END RTC_MspInit 1 */
-
   }
 
 }
@@ -250,7 +255,6 @@ void HAL_UART_MspInit(UART_HandleTypeDef* huart)
   /* USER CODE BEGIN USART1_MspInit 1 */
 
   /* USER CODE END USART1_MspInit 1 */
-
   }
 
 }
@@ -290,5 +294,4 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef* huart)
 }
 
 /* USER CODE BEGIN 1 */
-
 /* USER CODE END 1 */

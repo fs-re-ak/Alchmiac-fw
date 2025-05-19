@@ -1,13 +1,13 @@
 /* USER CODE BEGIN Header */
 /**
   ******************************************************************************
-  * @file    App/app_ble.h
+  * @file    app_ble.h
   * @author  MCD Application Team
   * @brief   Header for ble application
   ******************************************************************************
   * @attention
   *
-  * Copyright (c) 2025 STMicroelectronics.
+  * Copyright (c) 2021 STMicroelectronics.
   * All rights reserved.
   *
   * This software is licensed under terms that can be found in the LICENSE file
@@ -71,6 +71,12 @@ void APP_BLE_Init(void);
 APP_BLE_ConnStatus_t APP_BLE_Get_Server_Connection_Status(void);
 
 /* USER CODE BEGIN EF */
+void APP_BLE_Key_Button1_Action(void);
+void APP_BLE_Key_Button2_Action(void);
+
+
+uint8_t  APP_BLE_Send_EEGData_Notification(uint8_t* payload, uint8_t length);
+
 
 /* USER CODE END EF */
 

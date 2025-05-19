@@ -196,6 +196,7 @@ void P2PS_STM_Init(void)
    */
   SVCCTL_RegisterSvcHandler(PeerToPeer_Event_Handler);
   
+
     /**
      *  Peer To Peer Service
      *
@@ -275,6 +276,8 @@ tBleStatus P2PS_STM_App_Update_Char(uint16_t UUID, uint8_t *pPayload)
   tBleStatus result = BLE_STATUS_INVALID_PARAMS;
   switch(UUID)
   {
+
+#if 1
     case P2P_NOTIFY_CHAR_UUID:
       
      result = aci_gatt_update_char_value(aPeerToPeerContext.PeerToPeerSvcHdle,
@@ -284,6 +287,7 @@ tBleStatus P2PS_STM_App_Update_Char(uint16_t UUID, uint8_t *pPayload)
                              (uint8_t *)  pPayload);
     
       break;
+#endif
 
     default:
       break;

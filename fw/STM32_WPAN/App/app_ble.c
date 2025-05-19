@@ -1,13 +1,13 @@
 /* USER CODE BEGIN Header */
 /**
   ******************************************************************************
-  * @file    App/app_ble.c
+  * @file    app_ble.c
   * @author  MCD Application Team
   * @brief   BLE Application
-  *****************************************************************************
+  ******************************************************************************
   * @attention
   *
-  * Copyright (c) 2025 STMicroelectronics.
+  * Copyright (c) 2021 STMicroelectronics.
   * All rights reserved.
   *
   * This software is licensed under terms that can be found in the LICENSE file
@@ -34,6 +34,7 @@
 #include "otp.h"
 
 #include "p2p_server_app.h"
+#include "hermes_ble.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -147,6 +148,8 @@ typedef struct _tBLEProfileGlobalContext
    */
   uint8_t advtServUUID[100];
   /* USER CODE BEGIN BleGlobalContext_t*/
+  uint16_t eeg_service_handle; // Service and characteristic handles
+
 
   /* USER CODE END BleGlobalContext_t */
 }BleGlobalContext_t;
@@ -164,6 +167,8 @@ typedef struct
   uint8_t SwitchOffGPIO_timer_Id;
   /* USER CODE BEGIN PTD_1*/
 
+  uint16_t eeg_data_char_handle;
+
   /* USER CODE END PTD_1 */
 }BleApplicationContext_t;
 
@@ -179,7 +184,7 @@ typedef struct
 #define BD_ADDR_SIZE_LOCAL    6
 
 /* USER CODE BEGIN PD */
-
+#define LED_ON_TIMEOUT                 (0.005*1000*1000/CFG_TS_TICK_VAL) /**< 5ms */
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -234,8 +239,7 @@ uint8_t index_con_int, mutex;
 /**
  * Advertising Data
  */
-#if (P2P_SERVER1 != 0)
-static const char a_LocalName[] = {AD_TYPE_COMPLETE_LOCAL_NAME , 'P', '2', 'P', 'S', 'R', 'V', '1'};
+static const char a_LocalName[] = {AD_TYPE_COMPLETE_LOCAL_NAME , 'H', 'e', 'r', 'm', 'e', 's', ' ', 'V', '1'};
 uint8_t a_ManufData[14] = {sizeof(a_ManufData)-1,
                            AD_TYPE_MANUFACTURER_SPECIFIC_DATA,
                            0x01,                               /*SKD version */
@@ -251,105 +255,7 @@ uint8_t a_ManufData[14] = {sizeof(a_ManufData)-1,
                            0x00,
                            0x00,                               /* BLE MAC stop */
                           };
-#endif /* P2P_SERVER1 != 0 */
-/**
- * Advertising Data
- */
-#if (P2P_SERVER2 != 0)
-static const char a_LocalName[] = {AD_TYPE_COMPLETE_LOCAL_NAME, 'P', '2', 'P', 'S', 'R', 'V', '2'};
-uint8_t a_ManufData[14] = {sizeof(a_ManufData)-1,
-                           AD_TYPE_MANUFACTURER_SPECIFIC_DATA,
-                           0x01,                               /*SKD version */
-                           CFG_DEV_ID_P2P_SERVER2,             /* STM32WB - P2P Server 2*/
-                           0x00,                               /* GROUP A Feature */
-                           0x00,                               /* GROUP A Feature */
-                           0x00,                               /* GROUP B Feature */
-                           0x00,                               /* GROUP B Feature */
-                           0x00,                               /* BLE MAC start -MSB */
-                           0x00,
-                           0x00,
-                           0x00,
-                           0x00,
-                           0x00,                               /* BLE MAC stop */
-                          };
 
-#endif /* P2P_SERVER2 != 0 */
-
-#if (P2P_SERVER3 != 0)
-static const char a_LocalName[] = {AD_TYPE_COMPLETE_LOCAL_NAME, 'P', '2', 'P', 'S', 'R', 'V', '3'};
-uint8_t a_ManufData[14] = {sizeof(a_ManufData)-1,
-                           AD_TYPE_MANUFACTURER_SPECIFIC_DATA,
-                           0x01,                               /*SKD version */
-                           CFG_DEV_ID_P2P_SERVER3,             /* STM32WB - P2P Server 3*/
-                           0x00,                               /* GROUP A Feature */
-                           0x00,                               /* GROUP A Feature */
-                           0x00,                               /* GROUP B Feature */
-                           0x00,                               /* GROUP B Feature */
-                           0x00,                               /* BLE MAC start -MSB */
-                           0x00,
-                           0x00,
-                           0x00,
-                           0x00,
-                           0x00,                               /* BLE MAC stop */
-                          };
-#endif /* P2P_SERVER3 != 0 */
-
-#if (P2P_SERVER4 != 0)
-static const char a_LocalName[] = {AD_TYPE_COMPLETE_LOCAL_NAME, 'P', '2', 'P', 'S', 'R', 'V', '4'};
-uint8_t a_ManufData[14] = {sizeof(a_ManufData)-1,
-                           AD_TYPE_MANUFACTURER_SPECIFIC_DATA,
-                           0x01,                               /*SKD version */
-                           CFG_DEV_ID_P2P_SERVER4,             /* STM32WB - P2P Server 4*/
-                           0x00,                               /* GROUP A Feature */
-                           0x00,                               /* GROUP A Feature */
-                           0x00,                               /* GROUP B Feature */
-                           0x00,                               /* GROUP B Feature */
-                           0x00,                               /* BLE MAC start -MSB */
-                           0x00,
-                           0x00,
-                           0x00,
-                           0x00,
-                           0x00,                               /* BLE MAC stop */
-                          };
-#endif /* P2P_SERVER4 != 0 */
-
-#if (P2P_SERVER5 != 0)
-static const char a_LocalName[] = {AD_TYPE_COMPLETE_LOCAL_NAME, 'P', '2', 'P', 'S', 'R', 'V', '5'};
-uint8_t a_ManufData[14] = {sizeof(a_ManufData)-1,
-                           AD_TYPE_MANUFACTURER_SPECIFIC_DATA,
-                           0x01,                               /*SKD version */
-                           CFG_DEV_ID_P2P_SERVER5,             /* STM32WB - P2P Server 5*/
-                           0x00,                               /* GROUP A Feature */
-                           0x00,                               /* GROUP A Feature */
-                           0x00,                               /* GROUP B Feature */
-                           0x00,                               /* GROUP B Feature */
-                           0x00,                               /* BLE MAC start -MSB */
-                           0x00,
-                           0x00,
-                           0x00,
-                           0x00,
-                           0x00,                               /* BLE MAC stop */
-                          };
-#endif /* P2P_SERVER5 != 0 */
-
-#if (P2P_SERVER6 != 0)
-static const char a_LocalName[] = {AD_TYPE_COMPLETE_LOCAL_NAME, 'P', '2', 'P', 'S', 'R', 'V', '6'};
-uint8_t a_ManufData[14] = {sizeof(a_ManufData)-1,
-                           AD_TYPE_MANUFACTURER_SPECIFIC_DATA,
-                           0x01,                               /*SKD version */
-                           CFG_DEV_ID_P2P_SERVER6,             /* STM32WB - P2P Server 6*/
-                           0x00,                               /* GROUP A Feature */
-                           0x00,                               /* GROUP A Feature */
-                           0x00,                               /* GROUP B Feature */
-                           0x00,                               /* GROUP B Feature */
-                           0x00,                               /* BLE MAC start -MSB */
-                           0x00,
-                           0x00,
-                           0x00,
-                           0x00,
-                           0x00,                               /* BLE MAC stop */
-                          };
-#endif /* P2P_SERVER6 != 0 */
 
 /* USER CODE BEGIN PV */
 
@@ -371,6 +277,7 @@ static void Connection_Interval_Update_Req(void);
 #endif /* L2CAP_REQUEST_NEW_CONN_PARAM != 0 */
 
 /* USER CODE BEGIN PFP */
+static tBleStatus Add_EEG_Stream_Notify_Service(void);
 
 /* USER CODE END PFP */
 
@@ -388,7 +295,13 @@ void APP_BLE_Init(void)
   tBleStatus ret = BLE_STATUS_INVALID_PARAMS;
 #endif /* RADIO_ACTIVITY_EVENT != 0 */
   /* USER CODE BEGIN APP_BLE_Init_1 */
-
+  WirelessFwInfo_t wireless_info_instance;
+  WirelessFwInfo_t *p_wireless_info = &wireless_info_instance;  
+  char BdAddress[20];
+  char StackVersion[23];
+  char StackBranch[20];
+  char FusVersion[20];
+  const uint8_t *bdaddr=0;  
   /* USER CODE END APP_BLE_Init_1 */
   SHCI_C2_Ble_Init_Cmd_Packet_t ble_init_cmd_packet =
   {
@@ -508,6 +421,7 @@ void APP_BLE_Init(void)
   P2PS_APP_Init();
 
   /* USER CODE BEGIN APP_BLE_Init_3 */
+  Add_EEG_Stream_Notify_Service();
 
   /* USER CODE END APP_BLE_Init_3 */
 
@@ -536,11 +450,77 @@ void APP_BLE_Init(void)
   Adv_Request(APP_BLE_FAST_ADV);
 
   /* USER CODE BEGIN APP_BLE_Init_2 */
+   /* Displays the board information: MAC Address, Stack version, FUS version*/ 
+   if (SHCI_GetWirelessFwInfo(p_wireless_info) != SHCI_Success)
+   {
+     // Error
+   }
+   else
+   {
+     bdaddr= BleGetBdAddress();
+     sprintf(BdAddress, "BD_ad=%02x%02x%02x%02x%02x%02x", bdaddr[5],bdaddr[4],bdaddr[3],bdaddr[2],bdaddr[1],bdaddr[0]);
+     sprintf(StackVersion, "BLE Stack=v%d.%d.%d", p_wireless_info->VersionMajor, p_wireless_info->VersionMinor, p_wireless_info->VersionSub);
+     sprintf(StackBranch, "Branch=%d Type=%d", p_wireless_info->VersionBranch, p_wireless_info->VersionReleaseType);
+     sprintf(FusVersion, "FUS v%d.%d.%d", p_wireless_info->FusVersionMajor, p_wireless_info->FusVersionMinor, p_wireless_info->FusVersionSub);
+     
+   }
+   HAL_Delay(4000);
+   /* Displays Application */
+   
+   sprintf(BdAddress, "BD_ad=%02x%02x%02x%02x%02x%02x", bdaddr[5],bdaddr[4],bdaddr[3],bdaddr[2],bdaddr[1],bdaddr[0]);
 
   /* USER CODE END APP_BLE_Init_2 */
 
   return;
 }
+
+
+
+
+static tBleStatus Add_EEG_Stream_Notify_Service(void)
+{
+    tBleStatus ret = BLE_STATUS_SUCCESS;
+    uint8_t eeg_service_uuid[16];
+    uint8_t eeg_stream_char_uuid[16];
+
+    // Add service
+    COPY_EEG_SERVICE_UUID(eeg_service_uuid);
+    ret = aci_gatt_add_service(UUID_TYPE_128,
+                              (Service_UUID_t *) eeg_service_uuid,
+                              PRIMARY_SERVICE,
+                              2 + 3, /* 2 for service + 3 for characteristic */
+                              &(BleApplicationContext.BleApplicationContext_legacy.eeg_service_handle));
+
+    if (ret != BLE_STATUS_SUCCESS)
+    {
+        APP_DBG_MSG("Error adding New Notify Service - ret=0x%x\n", ret);
+        return ret;
+    }
+
+    // Add characteristic
+    COPY_EEG_DATA_UUID(eeg_stream_char_uuid);
+    ret = aci_gatt_add_char(BleApplicationContext.BleApplicationContext_legacy.eeg_service_handle,
+                           UUID_TYPE_128, (Char_UUID_t *) eeg_stream_char_uuid,
+                           NEW_NOTIFY_CHAR_VALUE_LENGTH,
+                           CHAR_PROP_NOTIFY,
+                           ATTR_PERMISSION_NONE,
+                           GATT_NOTIFY_ATTRIBUTE_WRITE,
+                           10,
+                           CHAR_VALUE_LEN_VARIABLE,
+                           &(BleApplicationContext.eeg_data_char_handle));
+
+    if (ret != BLE_STATUS_SUCCESS)
+    {
+        APP_DBG_MSG("Error adding New Notify Characteristic - ret=0x%x\n", ret);
+        return ret;
+    }
+
+
+    return ret;
+}
+
+
+
 
 SVCCTL_UserEvtFlowStatus_t SVCCTL_App_Notification(void *p_Pckt)
 {
@@ -557,7 +537,8 @@ SVCCTL_UserEvtFlowStatus_t SVCCTL_App_Notification(void *p_Pckt)
 #endif /* CFG_DEBUG_APP_TRACE != 0 */
 
   /* USER CODE BEGIN SVCCTL_App_Notification */
-
+    char BdAddress[20];
+    const uint8_t *bdaddr; 
   /* USER CODE END SVCCTL_App_Notification */
 
   p_event_pckt = (hci_event_pckt*) ((hci_uart_pckt *) p_Pckt)->data;
@@ -596,7 +577,8 @@ SVCCTL_UserEvtFlowStatus_t SVCCTL_App_Notification(void *p_Pckt)
       HandleNotification.ConnectionHandle = BleApplicationContext.BleApplicationContext_legacy.connectionHandle;
       P2PS_APP_Notification(&HandleNotification);
       /* USER CODE BEGIN EVT_DISCONN_COMPLETE */
-
+      bdaddr= BleGetBdAddress();
+      sprintf(BdAddress, "BD_ad=%02x%02x%02x%02x%02x%02x", bdaddr[5], bdaddr[4], bdaddr[3], bdaddr[2], bdaddr[1], bdaddr[0]);
       /* USER CODE END EVT_DISCONN_COMPLETE */
       break; /* HCI_DISCONNECTION_COMPLETE_EVT_CODE */
     }
@@ -700,7 +682,8 @@ SVCCTL_UserEvtFlowStatus_t SVCCTL_App_Notification(void *p_Pckt)
           HandleNotification.ConnectionHandle = BleApplicationContext.BleApplicationContext_legacy.connectionHandle;
           P2PS_APP_Notification(&HandleNotification);
           /* USER CODE BEGIN HCI_EVT_LE_CONN_COMPLETE */
-
+          bdaddr= BleGetBdAddress();
+          sprintf(BdAddress, "BD_ad=%02x%02x%02x%02x%02x%02x", bdaddr[5],bdaddr[4],bdaddr[3],bdaddr[2],bdaddr[1],bdaddr[0]);
           /* USER CODE END HCI_EVT_LE_CONN_COMPLETE */
           break; /* HCI_LE_CONNECTION_COMPLETE_SUBEVT_CODE */
         }
@@ -726,7 +709,88 @@ SVCCTL_UserEvtFlowStatus_t SVCCTL_App_Notification(void *p_Pckt)
       switch (p_blecore_evt->ecode)
       {
         /* USER CODE BEGIN ecode */
+        aci_gap_pairing_complete_event_rp0 *pairing_complete;
 
+        case ACI_GAP_LIMITED_DISCOVERABLE_VSEVT_CODE: 
+          APP_DBG_MSG(">>== ACI_GAP_LIMITED_DISCOVERABLE_VSEVT_CODE \n");
+          break; /* ACI_GAP_LIMITED_DISCOVERABLE_VSEVT_CODE */
+          
+        case ACI_GAP_PASS_KEY_REQ_VSEVT_CODE:  
+          APP_DBG_MSG(">>== ACI_GAP_PASS_KEY_REQ_VSEVT_CODE \n");
+		  
+          ret = aci_gap_pass_key_resp(BleApplicationContext.BleApplicationContext_legacy.connectionHandle,123456);
+          if (ret != BLE_STATUS_SUCCESS)
+          {
+            APP_DBG_MSG("==>> aci_gap_pass_key_resp : Fail, reason: 0x%x\n", ret);
+          } 
+          else 
+          {
+            APP_DBG_MSG("==>> aci_gap_pass_key_resp : Success \n");
+          }
+          break; /* ACI_GAP_PASS_KEY_REQ_VSEVT_CODE */
+
+        case ACI_GAP_AUTHORIZATION_REQ_VSEVT_CODE:    
+          APP_DBG_MSG(">>== ACI_GAP_AUTHORIZATION_REQ_VSEVT_CODE\n");
+          break; /* ACI_GAP_AUTHORIZATION_REQ_VSEVT_CODE */
+
+        case ACI_GAP_PERIPHERAL_SECURITY_INITIATED_VSEVT_CODE:   
+          APP_DBG_MSG("==>> ACI_GAP_PERIPHERAL_SECURITY_INITIATED_VSEVT_CODE \n");
+          break; /* ACI_GAP_PERIPHERAL_SECURITY_INITIATED_VSEVT_CODE */
+
+        case ACI_GAP_BOND_LOST_VSEVT_CODE:    
+          APP_DBG_MSG("==>> ACI_GAP_BOND_LOST_VSEVT_CODE \n");
+          ret = aci_gap_allow_rebond(BleApplicationContext.BleApplicationContext_legacy.connectionHandle);
+          if (ret != BLE_STATUS_SUCCESS)
+          {
+            APP_DBG_MSG("==>> aci_gap_allow_rebond : Fail, reason: 0x%x\n", ret);
+          } 
+          else 
+          {
+            APP_DBG_MSG("==>> aci_gap_allow_rebond : Success \n");
+          }
+          break; /* ACI_GAP_BOND_LOST_VSEVT_CODE */
+
+        case ACI_GAP_ADDR_NOT_RESOLVED_VSEVT_CODE:
+          APP_DBG_MSG(">>== ACI_GAP_ADDR_NOT_RESOLVED_VSEVT_CODE \n");
+          break; /* ACI_GAP_ADDR_NOT_RESOLVED_VSEVT_CODE */
+      
+        case (ACI_GAP_KEYPRESS_NOTIFICATION_VSEVT_CODE):
+          APP_DBG_MSG(">>== ACI_GAP_KEYPRESS_NOTIFICATION_VSEVT_CODE\n");
+          break; /* ACI_GAP_KEYPRESS_NOTIFICATION_VSEVT_CODE */    
+
+        case (ACI_GAP_NUMERIC_COMPARISON_VALUE_VSEVT_CODE):
+          APP_DBG_MSG(">>== ACI_GAP_NUMERIC_COMPARISON_VALUE_VSEVT_CODE\n");
+          APP_DBG_MSG("     - numeric_value = %ld\n",
+                      ((aci_gap_numeric_comparison_value_event_rp0 *)(p_blecore_evt->data))->Numeric_Value);
+          APP_DBG_MSG("     - Hex_value = %lx\n",
+                      ((aci_gap_numeric_comparison_value_event_rp0 *)(p_blecore_evt->data))->Numeric_Value);
+          ret = aci_gap_numeric_comparison_value_confirm_yesno(BleApplicationContext.BleApplicationContext_legacy.connectionHandle, YES); /* CONFIRM_YES = 1 */
+          if (ret != BLE_STATUS_SUCCESS)
+          {
+            APP_DBG_MSG("==>> aci_gap_numeric_comparison_value_confirm_yesno-->YES : Fail, reason: 0x%x\n", ret);
+          } 
+          else 
+          {
+            APP_DBG_MSG("==>> aci_gap_numeric_comparison_value_confirm_yesno-->YES : Success \n");
+          }
+          break;
+
+        case (ACI_GAP_PAIRING_COMPLETE_VSEVT_CODE):
+        {
+          pairing_complete = (aci_gap_pairing_complete_event_rp0*)p_blecore_evt->data;
+
+          APP_DBG_MSG(">>== ACI_GAP_PAIRING_COMPLETE_VSEVT_CODE\n");
+          if (pairing_complete->Status == 0)
+          {
+            APP_DBG_MSG("     - Pairing Success\n");
+          }
+          else
+          {
+            APP_DBG_MSG("     - Pairing KO \n     - Status: 0x%x\n     - Reason: 0x%x\n",pairing_complete->Status, pairing_complete->Reason);
+          }
+          APP_DBG_MSG("\n");
+        }
+          break;    
         /* USER CODE END ecode */
 
         /**
@@ -751,7 +815,11 @@ SVCCTL_UserEvtFlowStatus_t SVCCTL_App_Notification(void *p_Pckt)
 #if (RADIO_ACTIVITY_EVENT != 0)
         case ACI_HAL_END_OF_RADIO_ACTIVITY_VSEVT_CODE:
           /* USER CODE BEGIN RADIO_ACTIVITY_EVENT*/
-
+//          aPwmLedGsData[PWM_LED_RED]   = PWM_LED_GSDATA_OFF;
+//          aPwmLedGsData[PWM_LED_GREEN] = PWM_LED_GSDATA_7_0;
+//          aPwmLedGsData[PWM_LED_BLUE]  = PWM_LED_GSDATA_OFF;
+//          LED_On(aPwmLedGsData);
+          HW_TS_Start(BleApplicationContext.SwitchOffGPIO_timer_Id, (uint32_t)LED_ON_TIMEOUT);
           /* USER CODE END RADIO_ACTIVITY_EVENT*/
           break; /* ACI_HAL_END_OF_RADIO_ACTIVITY_VSEVT_CODE */
 #endif /* RADIO_ACTIVITY_EVENT != 0 */
@@ -789,6 +857,56 @@ APP_BLE_ConnStatus_t APP_BLE_Get_Server_Connection_Status(void)
 }
 
 /* USER CODE BEGIN FD*/
+void APP_BLE_Key_Button1_Action(void)
+{
+  P2PS_APP_SW1_Button_Action();
+}
+
+void APP_BLE_Key_Button2_Action(void)
+{
+#if (L2CAP_REQUEST_NEW_CONN_PARAM != 0 )    
+  UTIL_SEQ_SetTask( 1<<CFG_TASK_CONN_UPDATE_REG_ID, CFG_SCH_PRIO_0);
+#endif
+  
+  return;
+}
+
+
+
+
+
+
+
+
+
+
+/***************************************************
+ *
+ * Hermes Characteristics notifications
+ *
+ **/
+uint8_t  APP_BLE_Send_EEGData_Notification(uint8_t* payload, uint8_t length)
+{
+    uint8_t  ret = BLE_STATUS_INVALID_PARAMS;
+
+    if(length <= NEW_NOTIFY_CHAR_VALUE_LENGTH)
+    {
+        ret = aci_gatt_update_char_value(BleApplicationContext.BleApplicationContext_legacy.eeg_service_handle,
+                                        BleApplicationContext.eeg_data_char_handle,
+                                        0, /* offset */
+                                        length, /* data length */
+                                        payload);
+    }
+
+    return ret;
+}
+
+
+
+
+
+
+
 
 /* USER CODE END FD*/
 
@@ -866,6 +984,7 @@ static void Ble_Hci_Gap_Gatt_Init(void)
    * The lowest 32bits is read from the UDN to differentiate between devices
    * The RNG may be used to provide a random number on each power on
    */
+
 #if (CFG_BLE_ADDRESS_TYPE != GAP_PUBLIC_ADDR)
   /* BLE MAC in ADV Packet */
   a_ManufData[ sizeof(a_ManufData)-6] = a_srd_bd_addr[1] >> 8 ;
@@ -963,7 +1082,7 @@ static void Ble_Hci_Gap_Gatt_Init(void)
 
   if (role > 0)
   {
-    const char *name = "P2PSRV1";
+    const char *name = "Hermes V1";
     ret = aci_gap_init(role,
                        CFG_PRIVACY,
                        APPBLE_GAP_DEVICE_NAME_LENGTH,
@@ -1312,7 +1431,6 @@ void BLE_SVC_L2CAP_Conn_Update(uint16_t ConnectionHandle)
   }
 
   /* USER CODE BEGIN BLE_SVC_L2CAP_Conn_Update_2 */
-
   /* USER CODE END BLE_SVC_L2CAP_Conn_Update_2 */
 
   return;

@@ -6,7 +6,7 @@
   ******************************************************************************
   * @attention
   *
-  * Copyright (c) 2025 STMicroelectronics.
+  * Copyright (c) 2021 STMicroelectronics.
   * All rights reserved.
   *
   * This software is licensed under terms that can be found in the LICENSE file
@@ -58,6 +58,8 @@
 extern DMA_HandleTypeDef hdma_usart1_tx;
 extern UART_HandleTypeDef huart1;
 /* USER CODE BEGIN EV */
+extern IPCC_HandleTypeDef hipcc;
+extern TIM_HandleTypeDef htim2;
 
 /* USER CODE END EV */
 
@@ -73,7 +75,7 @@ void NMI_Handler(void)
 
   /* USER CODE END NonMaskableInt_IRQn 0 */
   /* USER CODE BEGIN NonMaskableInt_IRQn 1 */
-   while (1)
+  while (1)
   {
   }
   /* USER CODE END NonMaskableInt_IRQn 1 */
@@ -242,5 +244,64 @@ void DMA2_Channel4_IRQHandler(void)
 }
 
 /* USER CODE BEGIN 1 */
+/**
+  * @brief This function handles IPCC RX occupied interrupt.
+  */
+void IPCC_C1_RX_IRQHandler(void)
+{
+  /* USER CODE BEGIN IPCC_C1_RX_IRQn 0 */
+
+  /* USER CODE END IPCC_C1_RX_IRQn 0 */
+  HAL_IPCC_RX_IRQHandler(&hipcc);
+  /* USER CODE BEGIN IPCC_C1_RX_IRQn 1 */
+
+  /* USER CODE END IPCC_C1_RX_IRQn 1 */
+}
+
+/**
+  * @brief This function handles IPCC TX free interrupt.
+  */
+void IPCC_C1_TX_IRQHandler(void)
+{
+  /* USER CODE BEGIN IPCC_C1_TX_IRQn 0 */
+
+  /* USER CODE END IPCC_C1_TX_IRQn 0 */
+  HAL_IPCC_TX_IRQHandler(&hipcc);
+  /* USER CODE BEGIN IPCC_C1_TX_IRQn 1 */
+
+  /* USER CODE END IPCC_C1_TX_IRQn 1 */
+}
+/**
+ * @brief  This function handles External line
+ *         interrupt request.
+ * @param  None
+ * @retval None
+ */
+void PUSH_BUTTON_SW_EXTI_IRQHandler(void)
+{
+  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_12);
+  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_13);
+}
+
+void RTC_WKUP_IRQHandler(void)
+{
+  HAL_RTCEx_WakeUpTimerIRQHandler();
+}
+
+/**
+  * @brief  This function handles TIM17 IRQ Handler.
+  * @param  None
+  * @retval None
+  */
+void TIM1_TRG_COM_TIM17_IRQHandler(void)
+{
+
+}
+
+
+void TIM2_IRQHandler(void)
+{
+    HAL_TIM_IRQHandler(&htim2);
+}
 
 /* USER CODE END 1 */

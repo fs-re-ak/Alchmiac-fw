@@ -6,8 +6,6 @@
 "./Core/Src/stm32_lpm_if.o"
 "./Core/Src/stm32wbxx_hal_msp.o"
 "./Core/Src/stm32wbxx_it.o"
-"./Core/Src/syscalls.o"
-"./Core/Src/sysmem.o"
 "./Core/Src/system_stm32wbxx.o"
 "./Core/Startup/startup_stm32wb5mmghx.o"
 "./Drivers/STM32WBxx_HAL_Driver/Src/stm32wbxx_hal.o"

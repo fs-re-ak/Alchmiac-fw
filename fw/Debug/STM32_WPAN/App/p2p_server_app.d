@@ -107,7 +107,11 @@ STM32_WPAN/App/p2p_server_app.o: ../STM32_WPAN/App/p2p_server_app.c \
  ../Middlewares/ST/STM32_WPAN/ble/svc/Inc/template_stm.h \
  ../Middlewares/ST/STM32_WPAN/ble/svc/Inc/svc_ctl.h \
  ../Middlewares/ST/STM32_WPAN/ble/svc/Inc/uuid.h \
- ../STM32_WPAN/App/p2p_server_app.h ../Utilities/sequencer/stm32_seq.h
+ ../STM32_WPAN/App/p2p_server_app.h ../Utilities/sequencer/stm32_seq.h \
+ ../STM32_WPAN/App/app_ble.h \
+ ../Middlewares/ST/STM32_WPAN/interface/patterns/ble_thread/tl/hci_tl.h \
+ ../Middlewares/ST/STM32_WPAN/interface/patterns/ble_thread/tl/tl.h \
+ ../Core/Inc/gpios.h
 ../Core/Inc/main.h:
 ../Drivers/STM32WBxx_HAL_Driver/Inc/stm32wbxx_hal.h:
 ../Core/Inc/stm32wbxx_hal_conf.h:
@@ -223,3 +227,7 @@ STM32_WPAN/App/p2p_server_app.o: ../STM32_WPAN/App/p2p_server_app.c \
 ../Middlewares/ST/STM32_WPAN/ble/svc/Inc/uuid.h:
 ../STM32_WPAN/App/p2p_server_app.h:
 ../Utilities/sequencer/stm32_seq.h:
+../STM32_WPAN/App/app_ble.h:
+../Middlewares/ST/STM32_WPAN/interface/patterns/ble_thread/tl/hci_tl.h:
+../Middlewares/ST/STM32_WPAN/interface/patterns/ble_thread/tl/tl.h:
+../Core/Inc/gpios.h:

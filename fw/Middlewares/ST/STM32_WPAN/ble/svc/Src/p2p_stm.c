@@ -152,16 +152,7 @@ static SVCCTL_EvtAckStatus_t PeerToPeer_Event_Handler(void *Event)
               Notification.DataTransfered.pPayload=attribute_modified->Attr_Data;
               P2PS_STM_App_Notification(&Notification);  
             }
-#if(BLE_CFG_OTA_REBOOT_CHAR != 0)
-            else if(attribute_modified->Attr_Handle == (aPeerToPeerContext.RebootReqCharHdle + 1))
-            {
-              BLE_DBG_P2P_STM_MSG("-- GATT : REBOOT REQUEST RECEIVED\n");
-              Notification.P2P_Evt_Opcode = P2PS_STM_BOOT_REQUEST_EVT;
-              Notification.DataTransfered.Length=attribute_modified->Attr_Data_Length;
-              Notification.DataTransfered.pPayload=attribute_modified->Attr_Data;
-              P2PS_STM_App_Notification(&Notification);
-            }
-#endif
+
         }
         break;
 

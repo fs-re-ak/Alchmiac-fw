@@ -1,4 +1,4 @@
-Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
+Core/Src/lis3mdl.o: ../Core/Src/lis3mdl.c \
  ../Drivers/STM32WBxx_HAL_Driver/Inc/stm32wbxx_hal.h \
  ../Core/Inc/stm32wbxx_hal_conf.h \
  ../Drivers/STM32WBxx_HAL_Driver/Inc/stm32wbxx_hal_dma.h \
@@ -43,7 +43,7 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
  ../Drivers/STM32WBxx_HAL_Driver/Inc/stm32wbxx_hal_uart.h \
  ../Drivers/STM32WBxx_HAL_Driver/Inc/stm32wbxx_hal_uart_ex.h \
  ../Drivers/STM32WBxx_HAL_Driver/Inc/stm32wbxx_ll_system.h \
- ../Core/Inc/app_conf.h \
+ ../Core/Inc/lis3mdl.h ../Core/Inc/main.h ../Core/Inc/app_conf.h \
  ../Middlewares/ST/STM32_WPAN/interface/patterns/ble_thread/hw.h \
  ../Core/Inc/hw_conf.h ../Core/Inc/hw_if.h \
  ../Drivers/STM32WBxx_HAL_Driver/Inc/stm32wbxx_ll_exti.h \
@@ -58,15 +58,7 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
  ../Drivers/STM32WBxx_HAL_Driver/Inc/stm32wbxx_ll_gpio.h \
  ../Drivers/STM32WBxx_HAL_Driver/Inc/stm32wbxx_ll_rtc.h \
  ../Middlewares/ST/STM32_WPAN/ble/core/ble_bufsize.h \
- ../Core/Inc/app_entry.h ../Core/Inc/app_common.h \
- ../Utilities/lpm/tiny_lpm/stm32_lpm.h ../Utilities/sequencer/stm32_seq.h \
- ../Middlewares/ST/STM32_WPAN/utilities/dbg_trace.h ../Core/Inc/hw_conf.h \
- ../Middlewares/ST/STM32_WPAN/utilities/otp.h \
- ../Middlewares/ST/STM32_WPAN/utilities/utilities_common.h \
- ../Core/Inc/app_conf.h ../Core/Inc/gpios.h ../Core/Inc/ads1299.h \
- ../Core/Inc/ads1118.h ../STM32_WPAN/App/p2p_server_app.h \
- ../Core/Inc/ism330.h ../Core/Inc/main.h ../Core/Inc/lis3mdl.h
-../Core/Inc/main.h:
+ ../Core/Inc/app_entry.h ../Core/Inc/app_common.h
 ../Drivers/STM32WBxx_HAL_Driver/Inc/stm32wbxx_hal.h:
 ../Core/Inc/stm32wbxx_hal_conf.h:
 ../Drivers/STM32WBxx_HAL_Driver/Inc/stm32wbxx_hal_dma.h:
@@ -111,6 +103,8 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
 ../Drivers/STM32WBxx_HAL_Driver/Inc/stm32wbxx_hal_uart.h:
 ../Drivers/STM32WBxx_HAL_Driver/Inc/stm32wbxx_hal_uart_ex.h:
 ../Drivers/STM32WBxx_HAL_Driver/Inc/stm32wbxx_ll_system.h:
+../Core/Inc/lis3mdl.h:
+../Core/Inc/main.h:
 ../Core/Inc/app_conf.h:
 ../Middlewares/ST/STM32_WPAN/interface/patterns/ble_thread/hw.h:
 ../Core/Inc/hw_conf.h:
@@ -129,17 +123,3 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
 ../Middlewares/ST/STM32_WPAN/ble/core/ble_bufsize.h:
 ../Core/Inc/app_entry.h:
 ../Core/Inc/app_common.h:
-../Utilities/lpm/tiny_lpm/stm32_lpm.h:
-../Utilities/sequencer/stm32_seq.h:
-../Middlewares/ST/STM32_WPAN/utilities/dbg_trace.h:
-../Core/Inc/hw_conf.h:
-../Middlewares/ST/STM32_WPAN/utilities/otp.h:
-../Middlewares/ST/STM32_WPAN/utilities/utilities_common.h:
-../Core/Inc/app_conf.h:
-../Core/Inc/gpios.h:
-../Core/Inc/ads1299.h:
-../Core/Inc/ads1118.h:
-../STM32_WPAN/App/p2p_server_app.h:
-../Core/Inc/ism330.h:
-../Core/Inc/main.h:
-../Core/Inc/lis3mdl.h:

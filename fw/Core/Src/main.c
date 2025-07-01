@@ -31,6 +31,7 @@
 #include "ads1118.h"
 #include "p2p_server_app.h"
 #include "ism330.h"
+#include "lis3mdl.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -144,6 +145,7 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   ADS1299_Init();
   ism330_Init();
+  lis3mdl_Init();
 
   while(1)
   {
@@ -919,8 +921,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     	if(is_connected()){
     		UTIL_SEQ_SetTask( 1<<CFG_TASK_IMU_SAMPLE_ID, CFG_SCH_PRIO_0);
     	}
-
-    	//Trigger IMU
 
     }
 }

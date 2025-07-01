@@ -76,6 +76,8 @@ APP_BLE_ConnStatus_t APP_BLE_Get_Server_Connection_Status(void);
 uint8_t  APP_BLE_Send_EEGData_Notification(uint8_t* payload, uint8_t length);
 uint8_t  APP_BLE_Send_Event_Notification(event_packet_t* payload);
 uint8_t  APP_BLE_Send_IMU_Notification(uint8_t* accel, uint8_t* gyro);
+uint8_t  APP_BLE_Send_Compass_Notification(uint8_t* compass);
+
 
 /* USER CODE END EF */
 

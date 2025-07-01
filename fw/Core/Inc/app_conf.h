@@ -35,7 +35,7 @@
 /**
  * Define Tx Power
  */
-#define CFG_TX_POWER                      (0x18) /* -0.15dBm */
+#define CFG_TX_POWER                      (0x1F) /* -0.15dBm */
 
 /**
  * Define Advertising parameters
@@ -186,10 +186,10 @@
 #define CONN_P(x) ((int)((x)/1.25f))
 
   /*  L2CAP Connection Update request parameters used for test only with smart Phone */
-#define L2CAP_REQUEST_NEW_CONN_PARAM             1
+#define L2CAP_REQUEST_NEW_CONN_PARAM             0
 
-#define L2CAP_INTERVAL_MIN              CONN_P(15) /* 15ms */
-#define L2CAP_INTERVAL_MAX              CONN_P(50) /* 50ms */
+#define L2CAP_INTERVAL_MIN              CONN_P(6) /* 10ms */
+#define L2CAP_INTERVAL_MAX              CONN_P(12) /* 30ms */
 #define L2CAP_PERIPHERAL_LATENCY             0x0000
 #define L2CAP_TIMEOUT_MULTIPLIER        0x1F4
 
@@ -238,7 +238,8 @@
  *  The total amount of memory needed is the sum of the above quantities for each attribute.
  * This parameter is ignored by the CPU2 when CFG_BLE_OPTIONS has SHCI_C2_BLE_INIT_OPTIONS_LL_ONLY flag set
  */
-#define CFG_BLE_ATT_VALUE_ARRAY_SIZE    (1344)
+//2025-05-25 (1344)
+#define CFG_BLE_ATT_VALUE_ARRAY_SIZE    (2048)
 
 /**
  * Prepare Write List size in terms of number of packet
@@ -250,7 +251,9 @@
  * Number of allocated memory blocks
  * This parameter is overwritten by the CPU2 with an hardcoded optimal value when the parameter CFG_BLE_OPTIONS has SHCI_C2_BLE_INIT_OPTIONS_LL_ONLY flag set
  */
-#define CFG_BLE_MBLOCK_COUNT            (BLE_MBLOCKS_CALC(CFG_BLE_PREPARE_WRITE_LIST_SIZE, CFG_BLE_MAX_ATT_MTU, CFG_BLE_NUM_LINK))
+
+//2025-05-25 #define CFG_BLE_MBLOCK_COUNT            (BLE_MBLOCKS_CALC(CFG_BLE_PREPARE_WRITE_LIST_SIZE, CFG_BLE_MAX_ATT_MTU, CFG_BLE_NUM_LINK))
+#define CFG_BLE_MBLOCK_COUNT 128
 
 /**
  * Enable or disable the Extended Packet length feature. Valid values are 0 or 1.
@@ -432,7 +435,8 @@
  * for a CC/CS event, In that case, the notification TL_BLE_HCI_ToNot() is called to indicate
  * to the application a HCI command did not receive its command event within 30s (Default HCI Timeout).
  */
-#define CFG_TLBLE_EVT_QUEUE_LENGTH 5
+//2025-05-25
+#define CFG_TLBLE_EVT_QUEUE_LENGTH 8
 /**
  * This parameter should be set to fit most events received by the HCI layer. It defines the buffer size of each element
  * allocated in the queue of received events and can be used to optimize the amount of RAM allocated by the Memory Manager.

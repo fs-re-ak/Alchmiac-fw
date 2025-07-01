@@ -18,6 +18,6 @@
 ../Middlewares/ST/STM32_WPAN/ble/svc/Src/svc_ctl.c:132:13:SVCCTL_InitCustomSvc	4	static
 ../Middlewares/ST/STM32_WPAN/ble/svc/Src/svc_ctl.c:139:6:SVCCTL_Init	8	static
 ../Middlewares/ST/STM32_WPAN/ble/svc/Src/svc_ctl.c:156:13:SVCCTL_SvcInit	8	static
-../Middlewares/ST/STM32_WPAN/ble/svc/Src/svc_ctl.c:202:6:SVCCTL_RegisterSvcHandler	16	static
-../Middlewares/ST/STM32_WPAN/ble/svc/Src/svc_ctl.c:219:6:SVCCTL_RegisterCltHandler	16	static
-../Middlewares/ST/STM32_WPAN/ble/svc/Src/svc_ctl.c:231:35:SVCCTL_UserEvtRx	32	static
+../Middlewares/ST/STM32_WPAN/ble/svc/Src/svc_ctl.c:204:6:SVCCTL_RegisterSvcHandler	16	static
+../Middlewares/ST/STM32_WPAN/ble/svc/Src/svc_ctl.c:221:6:SVCCTL_RegisterCltHandler	16	static
+../Middlewares/ST/STM32_WPAN/ble/svc/Src/svc_ctl.c:233:35:SVCCTL_UserEvtRx	32	static

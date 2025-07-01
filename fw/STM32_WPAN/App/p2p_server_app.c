@@ -28,6 +28,7 @@
 #include "gpios.h"
 #include "ads1299.h"
 #include "ism330.h"
+#include "lis3mdl.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -92,8 +93,10 @@ void SWB_Send_Notification(void);
 void SWA_Local_Notification(void);
 void SWB_Local_Notification(void);
 
+void get_and_send_motion_samples(void);
 
 void get_and_send_imu_sample(void);
+void get_and_send_compass_sample(void);
 
 /**
  * START of Section BLE_APP_CONTEXT
@@ -147,6 +150,7 @@ void P2PS_STM_App_Notification(P2PS_STM_App_Notification_evt_t *pNotification)
 /* USER CODE END P2PS_STM_NOTIFY_DISABLED_EVT */
       break;
 
+#if 0
     case P2PS_STM_WRITE_EVT:
 /* USER CODE BEGIN P2PS_STM_WRITE_EVT */
       if(pNotification->DataTransfered.pPayload[0] == 0x00){ /* ALL Deviceselected - may be necessary as LB Routeur informs all connection */
@@ -178,6 +182,7 @@ void P2PS_STM_App_Notification(P2PS_STM_App_Notification_evt_t *pNotification)
           P2P_Server_App_Context.LedControl.Led1=0x00; /* LED1 OFF */
         }
       }
+#endif
 #endif
 /* USER CODE END P2PS_STM_WRITE_EVT */
       break;
@@ -236,7 +241,7 @@ void P2PS_APP_Init(void)
 #ifdef BLE_BUTTON_EVENTS
 	UTIL_SEQ_RegTask( 1<< CFG_TASK_SWA_BUTTON_PUSHED_ID, UTIL_SEQ_RFU, SWA_Send_Notification ); //
 	UTIL_SEQ_RegTask( 1<< CFG_TASK_SWB_BUTTON_PUSHED_ID, UTIL_SEQ_RFU, SWB_Send_Notification ); //
-	UTIL_SEQ_RegTask( 1<< CFG_TASK_IMU_SAMPLE_ID, UTIL_SEQ_RFU, get_and_send_imu_sample ); //
+	UTIL_SEQ_RegTask( 1<< CFG_TASK_IMU_SAMPLE_ID, UTIL_SEQ_RFU, get_and_send_motion_samples ); //
 
 #else
 	UTIL_SEQ_RegTask( 1<< CFG_TASK_SWA_BUTTON_PUSHED_ID, UTIL_SEQ_RFU, SWA_Local_Notification ); //
@@ -314,19 +319,32 @@ void SWB_Send_Notification(void)
 	current_event_payload.source_id = BUTTON_ID_B;
 	current_event_payload.packet_id = packet_counter;
 
-	APP_BLE_Send_Event_Notification(&current_event_payload);
+	//APP_BLE_Send_Event_Notification(&current_event_payload);
 }
 
-
+void get_and_send_motion_samples(void){
+	get_and_send_imu_sample();
+	get_and_send_compass_sample();
+}
 
 void get_and_send_imu_sample(void){
 
 	if(P2P_Server_App_Context.Notification_Status==1){
-		HAL_GPIO_WritePin(LED_A_GPIO_Port, LED_A_Pin, GPIO_PIN_SET);
 		int16_t* imu_sample = ism330_ReadIMU();
 		APP_BLE_Send_IMU_Notification((uint8_t*)imu_sample, (uint8_t*)&imu_sample[3]);
 	}
 }
+
+
+void get_and_send_compass_sample(void){
+
+	if(P2P_Server_App_Context.Notification_Status==1){
+		int16_t* compass_sample = lis3mdl_ReadMag();
+		APP_BLE_Send_Compass_Notification((uint8_t*)compass_sample);
+	}
+}
+
+
 
 
 /* USER CODE END FD */
@@ -341,6 +359,7 @@ void get_and_send_imu_sample(void){
 
 void fill_and_send_packet(void)
 {
+
 
   // are we streaming ?
   if(P2P_Server_App_Context.Notification_Status){
@@ -368,6 +387,7 @@ void fill_and_send_packet(void)
 
   }
 
+
 }
 
 
@@ -385,7 +405,10 @@ void APP_BLE_Manage_ADS1299_event(void)
 		sample_index++;
 
 		if(sample_index >= NB_SAMPLES_PER_PACKET){
-			APP_BLE_Send_EEGData_Notification(buffered_packets_array[buffer_index], PACKET_SIZE);
+			if(APP_BLE_Send_EEGData_Notification(buffered_packets_array[buffer_index], PACKET_SIZE)!=0){
+				HAL_GPIO_WritePin(LED_A_GPIO_Port, LED_A_Pin, GPIO_PIN_SET);
+			}
+
 			buffer_index = (buffer_index + 1) % PACKETBUFFER_DEPTH;
 			packet_counter = (packet_counter + 1) % 128;
 			sample_index = 0;

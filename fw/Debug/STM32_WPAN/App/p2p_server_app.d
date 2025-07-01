@@ -112,7 +112,7 @@ STM32_WPAN/App/p2p_server_app.o: ../STM32_WPAN/App/p2p_server_app.c \
  ../Middlewares/ST/STM32_WPAN/interface/patterns/ble_thread/tl/hci_tl.h \
  ../Middlewares/ST/STM32_WPAN/interface/patterns/ble_thread/tl/tl.h \
  ../Core/Inc/gpios.h ../Core/Inc/ads1299.h ../Core/Inc/ism330.h \
- ../Core/Inc/main.h
+ ../Core/Inc/main.h ../Core/Inc/lis3mdl.h
 ../STM32_WPAN/App/p2p_server_app.h:
 ../Core/Inc/main.h:
 ../Drivers/STM32WBxx_HAL_Driver/Inc/stm32wbxx_hal.h:
@@ -235,3 +235,4 @@ STM32_WPAN/App/p2p_server_app.o: ../STM32_WPAN/App/p2p_server_app.c \
 ../Core/Inc/ads1299.h:
 ../Core/Inc/ism330.h:
 ../Core/Inc/main.h:
+../Core/Inc/lis3mdl.h:

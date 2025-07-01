@@ -30,6 +30,7 @@ static uint8_t write_ads1299_register(uint8_t start_addr, uint8_t num_regs, uint
 
 //static void GPIOsDefaultState();
 static void PowerUpSequence();
+void EEGRecordingSequence();
 
 
 
@@ -71,16 +72,20 @@ static void PowerUpSequence(){
 
 	register_value = 0x96;
 	write_ads1299_register(ADS1299_REG_CONFIG1, 1, &register_value);
+	HAL_Delay(1);
 	register_value = 0xC0;
 	write_ads1299_register(ADS1299_REG_CONFIG2, 1, &register_value);
+	HAL_Delay(1);
 	register_value = 0xE0;
 	write_ads1299_register(ADS1299_REG_CONFIG3, 1, &register_value);
+	HAL_Delay(1);
 
 	for(i=0;i<ADS1299_CHANNELS;i++){
 		channset_value[i] = 0x01;
 	}
 
 	write_ads1299_register(ADS1299_REG_CH1SET, ADS1299_CHANNELS, channset_value);
+	HAL_Delay(1);
 
 	setADS1299Start(GPIO_PIN_SET);
 
@@ -95,6 +100,7 @@ static void PowerUpSequence(){
 	send_ads1299_command(ADS1299_SDATAC);
 	register_value = 0xD0;
 	write_ads1299_register(ADS1299_REG_CONFIG2, 1, &register_value);
+	HAL_Delay(1);
 
 	for(i=0;i<ADS1299_CHANNELS;i++){
 		channset_value[i] = 0x55;
@@ -103,6 +109,9 @@ static void PowerUpSequence(){
 	write_ads1299_register(ADS1299_REG_CH1SET, ADS1299_CHANNELS, channset_value);
 
 	HAL_Delay(1);
+
+
+	EEGRecordingSequence();
 
 	send_ads1299_command(ADS1299_RDATAC);
 
@@ -122,22 +131,33 @@ void EEGRecordingSequence(){
 	HAL_Delay(20);
 
 	send_ads1299_command(ADS1299_SDATAC);
-	register_value = 0xD0;
+	register_value = 0xC0;
 	write_ads1299_register(ADS1299_REG_CONFIG2, 1, &register_value);
-	register_value = 0xEC;
+	HAL_Delay(1);
+
+
+	register_value = 0xEC; //BIAS-enabled
+	//register_value = 0xE0; //BIAS-disabled
 	write_ads1299_register(ADS1299_REG_CONFIG3, 1, &register_value);
-	register_value = 0x0F;
+	HAL_Delay(1);
+	//register_value = 0x00; //BIAS-disabled
+	register_value = 0xFF; //BIAS-enabled
 	write_ads1299_register(ADS1299_REG_BIAS_SENSP, 1, &register_value);
+	HAL_Delay(1);
+	register_value = 0x00;
+	write_ads1299_register(ADS1299_REG_BIAS_SENSN, 1, &register_value);
+	HAL_Delay(1);
 	register_value = 0x20;
 	write_ads1299_register(ADS1299_REG_MISC1, 1, &register_value);
+	HAL_Delay(1);
 
-	for(i=0;i<4;i++){
-		channset_value[i] = 0x60;
+	for(i=0;i<ADS1299_CHANNELS;i++){
+		channset_value[i] = 0x50;
 	}
 
-	for(i=4;i<ADS1299_CHANNELS;i++){
-		channset_value[i] = 0x01;
-	}
+	//for(i=4;i<ADS1299_CHANNELS;i++){
+	//	channset_value[i] = 0x01;
+	//}
 
 	write_ads1299_register(ADS1299_REG_CH1SET, ADS1299_CHANNELS, channset_value);
 

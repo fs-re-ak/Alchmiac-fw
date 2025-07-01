@@ -179,7 +179,9 @@ __WEAK void SVCCTL_SvcInit(void)
 
   MOTENV_STM_Init();
 
-  P2PS_STM_Init();
+
+  //P2PS_STM_Init();
+  Hermes_App_Init();
 
   ZDD_STM_Init();
 

@@ -1,8 +1,8 @@
 /**
   ******************************************************************************
-  * @file           : ism330_i2c.h
+  * @file           : ism330.h
   * @brief          : ISM330DHCX function package
-  * @Author			: Francois Robillard
+  * @Author			: Fred Simard
   ******************************************************************************
   * @attention
   *

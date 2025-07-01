@@ -185,7 +185,7 @@ void P2PS_STM_Init(void)
   /**
    *	Register the event handler to the BLE controller
    */
-  SVCCTL_RegisterSvcHandler(PeerToPeer_Event_Handler);
+  //SVCCTL_RegisterSvcHandler(PeerToPeer_Event_Handler);
   
 
     /**

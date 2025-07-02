@@ -391,7 +391,8 @@ void MX_I2C3_Init(void)
 
 
 	hi2c3.Instance = I2C3;
-	  hi2c3.Init.Timing = 0x00707CBB;
+//hi2c3.Init.Timing = 0x00707CBB;
+	  hi2c3.Init.Timing = 0x0060112F;
 	  hi2c3.Init.OwnAddress1 = 0;
 	  hi2c3.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
 	  hi2c3.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
@@ -891,6 +892,34 @@ static void MX_TIM2_Init(void)
 
 
 
+void MX_TIM17_Init(void)
+{
+    __HAL_RCC_TIM17_CLK_ENABLE();
+
+    htim17.Instance = TIM17;
+    htim17.Init.Prescaler = (uint32_t)(HAL_RCC_GetPCLK2Freq() / 1000) - 1;  // TIM17 is on APB2
+    htim17.Init.CounterMode = TIM_COUNTERMODE_UP;
+    htim17.Init.Period = 100 - 1;
+    htim17.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+    htim17.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+    htim17.Init.RepetitionCounter = 0;
+
+    if (HAL_TIM_Base_Init(&htim17) != HAL_OK)
+    {
+        Error_Handler();
+    }
+
+    HAL_NVIC_SetPriority(TIM1_TRG_COM_TIM17_IRQn, 14, 0);  // Different interrupt for TIM17
+    HAL_NVIC_EnableIRQ(TIM1_TRG_COM_TIM17_IRQn);
+
+    if (HAL_TIM_Base_Start_IT(&htim17) != HAL_OK)
+    {
+        Error_Handler();
+    }
+}
+
+
+
 // Timer interrupt handler
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
@@ -926,34 +955,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 }
 
 
-
-
-
-void MX_TIM17_Init(void)
-{
-    __HAL_RCC_TIM17_CLK_ENABLE();
-
-    htim17.Instance = TIM17;
-    htim17.Init.Prescaler = (uint32_t)(HAL_RCC_GetPCLK2Freq() / 1000) - 1;  // TIM17 is on APB2
-    htim17.Init.CounterMode = TIM_COUNTERMODE_UP;
-    htim17.Init.Period = 1000 - 1;
-    htim17.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-    htim17.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-    htim17.Init.RepetitionCounter = 0;
-
-    if (HAL_TIM_Base_Init(&htim17) != HAL_OK)
-    {
-        Error_Handler();
-    }
-
-    HAL_NVIC_SetPriority(TIM1_TRG_COM_TIM17_IRQn, 5, 0);  // Different interrupt for TIM17
-    HAL_NVIC_EnableIRQ(TIM1_TRG_COM_TIM17_IRQn);
-
-    if (HAL_TIM_Base_Start_IT(&htim17) != HAL_OK)
-    {
-        Error_Handler();
-    }
-}
 
 
 

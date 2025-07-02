@@ -5,7 +5,7 @@
 ../STM32_WPAN/App/app_ble.c:495:6:Hermes_App_Init	1
 ../STM32_WPAN/App/app_ble.c:503:19:Add_EEG_Stream_Notify_Service	4
 ../STM32_WPAN/App/app_ble.c:565:19:Add_Event_Notify_Service	3
-../STM32_WPAN/App/app_ble.c:609:19:Add_Motion_Notify_Service	5
+../STM32_WPAN/App/app_ble.c:609:19:Add_Motion_Notify_Service	4
 ../STM32_WPAN/App/app_ble.c:696:28:SVCCTL_App_Notification	37
 ../STM32_WPAN/App/app_ble.c:1025:22:APP_BLE_Get_Server_Connection_Status	1
 ../STM32_WPAN/App/app_ble.c:1045:10:APP_BLE_Send_EEGData_Notification	2

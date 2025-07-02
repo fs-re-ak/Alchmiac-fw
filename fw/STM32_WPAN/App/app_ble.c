@@ -444,7 +444,7 @@ void APP_BLE_Init(void)
   /**
    * Create timer to handle the Advertising Stop
    */
-  HW_TS_Create(CFG_TIM_PROC_ID_ISR, &(BleApplicationContext.Advertising_mgr_timer_Id), hw_ts_SingleShot, Adv_Cancel_Req);
+  //HW_TS_Create(CFG_TIM_PROC_ID_ISR, &(BleApplicationContext.Advertising_mgr_timer_Id), hw_ts_SingleShot, Adv_Cancel_Req);
   /**
    * Create timer to handle the Led Switch OFF
    */
@@ -632,7 +632,7 @@ static tBleStatus Add_Motion_Notify_Service(void)
     COPY_ACCEL_UUID(accel_char_uuid);
     ret = aci_gatt_add_char(BleApplicationContext.BleApplicationContext_legacy.motion_service_handle,
                            UUID_TYPE_128, (Char_UUID_t *) accel_char_uuid,
-                           6,
+                           180,
                            CHAR_PROP_NOTIFY,
                            ATTR_PERMISSION_NONE,
 						   GATT_NOTIFY_ATTRIBUTE_WRITE,
@@ -646,7 +646,7 @@ static tBleStatus Add_Motion_Notify_Service(void)
         return ret;
     }
 
-
+    /*
     // Add characteristic
     COPY_GYRO_UUID(gyro_char_uuid);
     ret = aci_gatt_add_char(BleApplicationContext.BleApplicationContext_legacy.motion_service_handle,
@@ -663,7 +663,7 @@ static tBleStatus Add_Motion_Notify_Service(void)
     {
         APP_DBG_MSG("Error adding New Notify Characteristic - ret=0x%x\n", ret);
         return ret;
-    }
+    }*/
 
 
     // Add characteristic
@@ -819,7 +819,7 @@ SVCCTL_UserEvtFlowStatus_t SVCCTL_App_Notification(void *p_Pckt)
            * The connection is done, there is no need anymore to schedule the LP ADV
            */
 
-          HW_TS_Stop(BleApplicationContext.Advertising_mgr_timer_Id);
+          //HW_TS_Stop(BleApplicationContext.Advertising_mgr_timer_Id);
 
           APP_DBG_MSG(">>== HCI_LE_CONNECTION_COMPLETE_SUBEVT_CODE - Connection handle: 0x%x\n", p_connection_complete_event->Connection_Handle);
           APP_DBG_MSG("     - Connection established with Central: @:%02x:%02x:%02x:%02x:%02x:%02x\n",
@@ -1081,16 +1081,16 @@ uint8_t  APP_BLE_Send_IMU_Notification(uint8_t* accel, uint8_t* gyro)
 	ret = aci_gatt_update_char_value(BleApplicationContext.BleApplicationContext_legacy.motion_service_handle,
 									BleApplicationContext.accel_char_handle,
 									0, /* offset */
-									6, /* data length */
+									180, /* data length */
 									accel);
 
-
+	/*
 	ret = aci_gatt_update_char_value(BleApplicationContext.BleApplicationContext_legacy.motion_service_handle,
 									BleApplicationContext.gyro_char_handle,
-									0, /* offset */
-									6, /* data length */
+									0,
+									60,
 									gyro);
-
+    */
     return ret;
 }
 
@@ -1102,7 +1102,7 @@ uint8_t  APP_BLE_Send_Compass_Notification(uint8_t* compass)
 	ret = aci_gatt_update_char_value(BleApplicationContext.BleApplicationContext_legacy.motion_service_handle,
 									BleApplicationContext.compass_char_handle,
 									0, /* offset */
-									6, /* data length */
+									60, /* data length */
 									compass);
 
     return ret;
@@ -1422,7 +1422,7 @@ static void Adv_Request(APP_BLE_ConnStatus_t NewStatus)
    * Stop the timer, it will be restarted for a new shot
    * It does not hurt if the timer was not running
    */
-  HW_TS_Stop(BleApplicationContext.Advertising_mgr_timer_Id);
+  //HW_TS_Stop(BleApplicationContext.Advertising_mgr_timer_Id);
 
   if ((NewStatus == APP_BLE_LP_ADV)
       && ((BleApplicationContext.Device_Connection_Status == APP_BLE_FAST_ADV)
@@ -1481,7 +1481,7 @@ static void Adv_Request(APP_BLE_ConnStatus_t NewStatus)
     {
       APP_DBG_MSG("==>> Success: Start Fast Advertising \n\r");
       /* Start Timer to STOP ADV - TIMEOUT - and next Restart Low Power Advertising */
-      HW_TS_Start(BleApplicationContext.Advertising_mgr_timer_Id, INITIAL_ADV_TIMEOUT);
+      //HW_TS_Start(BleApplicationContext.Advertising_mgr_timer_Id, INITIAL_ADV_TIMEOUT);
     }
     else
     {

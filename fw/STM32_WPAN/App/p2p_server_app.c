@@ -67,6 +67,12 @@ typedef struct
 #define SAMPLE_SIZE 24
 #define PACKET_SIZE (NB_SAMPLES_PER_PACKET * SAMPLE_SIZE + 1)
 
+
+#define MOTION_NB_SAMPLES_PER_PACKET 10
+#define MOTION_SAMPLE_SIZE sizeof(uint16_t)*3
+#define MOTION_PACKET_SIZE (MOTION_NB_SAMPLES_PER_PACKET * MOTION_SAMPLE_SIZE)
+
+
 /* USER CODE END PD */
 
 /* Private macros -------------------------------------------------------------*/
@@ -86,6 +92,14 @@ static uint32_t sample_counter = 0; // dev only
 uint8_t statusBuffer[3];
 
 static event_packet_t current_event_payload;
+
+
+static uint8_t accel_packet[MOTION_PACKET_SIZE] = {0};
+static uint8_t gyro_packet[MOTION_PACKET_SIZE] = {0};
+static uint32_t imu_packet_index = 0;
+
+static uint8_t compass_packet[MOTION_PACKET_SIZE] = {0};
+static uint32_t compass_packet_index = 0;
 
 void SWA_Send_Notification(void);
 void SWB_Send_Notification(void);
@@ -218,6 +232,7 @@ void P2PS_APP_Notification(P2PS_APP_ConnHandle_Not_evt_t *pNotification)
     case PEER_DISCON_HANDLE_EVT :
 /* USER CODE BEGIN PEER_DISCON_HANDLE_EVT */
 //       P2PS_APP_LED_BUTTON_context_Init();
+    	P2P_Server_App_Context.Notification_Status = 0;
 /* USER CODE END PEER_DISCON_HANDLE_EVT */
     break;
 
@@ -319,19 +334,41 @@ void SWB_Send_Notification(void)
 	current_event_payload.source_id = BUTTON_ID_B;
 	current_event_payload.packet_id = packet_counter;
 
-	//APP_BLE_Send_Event_Notification(&current_event_payload);
+	APP_BLE_Send_Event_Notification(&current_event_payload);
 }
 
+static uint8_t peripheralSwitch = 0;
+
 void get_and_send_motion_samples(void){
+
 	get_and_send_imu_sample();
-	get_and_send_compass_sample();
+
+	/*
+	if(peripheralSwitch){
+	}else{
+		get_and_send_compass_sample();
+	}
+	peripheralSwitch = (peripheralSwitch == 1) ? 0 : 1;
+	*/
 }
+
+
 
 void get_and_send_imu_sample(void){
 
 	if(P2P_Server_App_Context.Notification_Status==1){
+		/*
 		int16_t* imu_sample = ism330_ReadIMU();
-		APP_BLE_Send_IMU_Notification((uint8_t*)imu_sample, (uint8_t*)&imu_sample[3]);
+
+		memcpy(&accel_packet[imu_packet_index*sizeof(int16_t)*3],imu_sample,3*sizeof(int16_t));
+		memcpy(&gyro_packet[imu_packet_index*sizeof(int16_t)*3],&imu_sample[3],3*sizeof(int16_t));
+
+		imu_packet_index++;
+
+		if(imu_packet_index>=MOTION_NB_SAMPLES_PER_PACKET){
+			imu_packet_index = 0;
+		}*/
+		APP_BLE_Send_IMU_Notification(accel_packet, gyro_packet);
 	}
 }
 
@@ -339,10 +376,20 @@ void get_and_send_imu_sample(void){
 void get_and_send_compass_sample(void){
 
 	if(P2P_Server_App_Context.Notification_Status==1){
+		/*
 		int16_t* compass_sample = lis3mdl_ReadMag();
-		APP_BLE_Send_Compass_Notification((uint8_t*)compass_sample);
+
+		memcpy(&compass_packet[compass_packet_index*sizeof(int16_t)*3],compass_sample,3*sizeof(int16_t));
+
+		compass_packet_index++;
+
+		if(compass_packet_index>=MOTION_NB_SAMPLES_PER_PACKET){
+			compass_packet_index = 0;
+		}*/
+		//APP_BLE_Send_Compass_Notification(compass_packet);
 	}
 }
+
 
 
 

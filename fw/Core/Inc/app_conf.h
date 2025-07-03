@@ -186,10 +186,14 @@
 #define CONN_P(x) ((int)((x)/1.25f))
 
   /*  L2CAP Connection Update request parameters used for test only with smart Phone */
-#define L2CAP_REQUEST_NEW_CONN_PARAM             0
+#define L2CAP_REQUEST_NEW_CONN_PARAM             1
 
-#define L2CAP_INTERVAL_MIN              CONN_P(6) /* 10ms */
-#define L2CAP_INTERVAL_MAX              CONN_P(12) /* 30ms */
+// 2025-07-02
+//#define L2CAP_INTERVAL_MIN              CONN_P(6) /* 7.5ms */
+//#define L2CAP_INTERVAL_MAX              CONN_P(12) /* 15ms */
+
+#define L2CAP_INTERVAL_MIN              CONN_P(24) /* 30 ms */
+#define L2CAP_INTERVAL_MAX              CONN_P(30) /* 2025-07-2 => 50 ms */
 #define L2CAP_PERIPHERAL_LATENCY             0x0000
 #define L2CAP_TIMEOUT_MULTIPLIER        0x1F4
 
@@ -239,7 +243,11 @@
  * This parameter is ignored by the CPU2 when CFG_BLE_OPTIONS has SHCI_C2_BLE_INIT_OPTIONS_LL_ONLY flag set
  */
 //2025-05-25 (1344)
+//2025-07-02 (2048)
 #define CFG_BLE_ATT_VALUE_ARRAY_SIZE    (2048)
+
+//#define CFG_BLE_MBLOCK_COUNT 128
+//#define CFG_BLE_ATT_VALUE_ARRAY_SIZE 2048
 
 /**
  * Prepare Write List size in terms of number of packet
@@ -253,6 +261,8 @@
  */
 
 //2025-05-25 #define CFG_BLE_MBLOCK_COUNT            (BLE_MBLOCKS_CALC(CFG_BLE_PREPARE_WRITE_LIST_SIZE, CFG_BLE_MAX_ATT_MTU, CFG_BLE_NUM_LINK))
+
+//2025-07-02 128
 #define CFG_BLE_MBLOCK_COUNT 128
 
 /**
@@ -690,6 +700,7 @@ typedef enum
   CFG_TASK_SWA_BUTTON_PUSHED_ID,
   CFG_TASK_SWB_BUTTON_PUSHED_ID,
   CFG_TASK_IMU_SAMPLE_ID,
+  CFG_TASK_ADS_SAMPLE_ID,
   /* USER CODE END CFG_Task_Id_With_HCI_Cmd_t */
   CFG_LAST_TASK_ID_WITH_HCICMD,                                               /**< Shall be LAST in the list */
 } CFG_Task_Id_With_HCI_Cmd_t;

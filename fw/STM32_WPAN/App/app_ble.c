@@ -619,7 +619,7 @@ static tBleStatus Add_Motion_Notify_Service(void)
     ret = aci_gatt_add_service(UUID_TYPE_128,
                               (Service_UUID_t *) motion_service_uuid,
                               PRIMARY_SERVICE,
-                              2 + 3 + 3 + 3, /* 2 for service + 6 for 2 characteristic */
+                              2 + 3, /* 2 for service + 6 for 1 characteristic */
                               &(BleApplicationContext.BleApplicationContext_legacy.motion_service_handle));
 
     if (ret != BLE_STATUS_SUCCESS)
@@ -632,12 +632,12 @@ static tBleStatus Add_Motion_Notify_Service(void)
     COPY_ACCEL_UUID(accel_char_uuid);
     ret = aci_gatt_add_char(BleApplicationContext.BleApplicationContext_legacy.motion_service_handle,
                            UUID_TYPE_128, (Char_UUID_t *) accel_char_uuid,
-                           180,
+                           12,
                            CHAR_PROP_NOTIFY,
                            ATTR_PERMISSION_NONE,
 						   GATT_NOTIFY_ATTRIBUTE_WRITE,
                            10,
-                           CHAR_VALUE_LEN_VARIABLE,
+                           0,
                            &(BleApplicationContext.accel_char_handle));
 
     if (ret != BLE_STATUS_SUCCESS)
@@ -666,7 +666,8 @@ static tBleStatus Add_Motion_Notify_Service(void)
     }*/
 
 
-    // Add characteristic
+    // Add characteristic¸
+    /*
     COPY_COMPASS_UUID(compass_char_uuid);
     ret = aci_gatt_add_char(BleApplicationContext.BleApplicationContext_legacy.motion_service_handle,
                            UUID_TYPE_128, (Char_UUID_t *) compass_char_uuid,
@@ -684,7 +685,7 @@ static tBleStatus Add_Motion_Notify_Service(void)
         return ret;
     }
 
-
+    */
 
 
     return ret;
@@ -730,7 +731,7 @@ SVCCTL_UserEvtFlowStatus_t SVCCTL_App_Notification(void *p_Pckt)
                     p_disconnection_complete_event->Reason);
 
         /* USER CODE BEGIN EVT_DISCONN_COMPLETE_2 */
-
+        mutex = 1;
         /* USER CODE END EVT_DISCONN_COMPLETE_2 */
       }
 
@@ -1074,14 +1075,14 @@ uint8_t  APP_BLE_Send_Event_Notification(event_packet_t* payload)
 
 
 
-uint8_t  APP_BLE_Send_IMU_Notification(uint8_t* accel, uint8_t* gyro)
+uint8_t  APP_BLE_Send_IMU_Notification(uint8_t* accel)
 {
     uint8_t  ret = BLE_STATUS_INVALID_PARAMS;
 
 	ret = aci_gatt_update_char_value(BleApplicationContext.BleApplicationContext_legacy.motion_service_handle,
 									BleApplicationContext.accel_char_handle,
 									0, /* offset */
-									180, /* data length */
+									12, /* data length */
 									accel);
 
 	/*
@@ -1102,7 +1103,7 @@ uint8_t  APP_BLE_Send_Compass_Notification(uint8_t* compass)
 	ret = aci_gatt_update_char_value(BleApplicationContext.BleApplicationContext_legacy.motion_service_handle,
 									BleApplicationContext.compass_char_handle,
 									0, /* offset */
-									60, /* data length */
+									6, /* data length */
 									compass);
 
     return ret;
@@ -1615,8 +1616,10 @@ void BLE_SVC_L2CAP_Conn_Update(uint16_t ConnectionHandle)
     index_con_int = (index_con_int + 1)%SIZE_TAB_CONN_INT;
     //uint16_t interval_min = CONN_P(a_ConnInterval[index_con_int]);
     //uint16_t interval_max = CONN_P(a_ConnInterval[index_con_int]);
-    uint16_t interval_min = CONN_P(15);
-    uint16_t interval_max = CONN_P(25);
+    //uint16_t interval_min = CONN_P(15); //2025-07-02
+    //uint16_t interval_max = CONN_P(25); //2025-07-02
+    uint16_t interval_min = CONN_P(24);
+    uint16_t interval_max = CONN_P(45);
     uint16_t peripheral_latency = L2CAP_PERIPHERAL_LATENCY;
     uint16_t timeout_multiplier = L2CAP_TIMEOUT_MULTIPLIER;
     tBleStatus ret;
@@ -1626,6 +1629,7 @@ void BLE_SVC_L2CAP_Conn_Update(uint16_t ConnectionHandle)
                                                     peripheral_latency, timeout_multiplier);
     if (ret != BLE_STATUS_SUCCESS)
     {
+    	HAL_GPIO_WritePin(LED_A_GPIO_Port, LED_A_Pin, GPIO_PIN_SET);
       APP_DBG_MSG("BLE_SVC_L2CAP_Conn_Update(), Failed \r\n\r");
     }
     else

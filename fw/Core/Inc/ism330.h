@@ -83,6 +83,14 @@
 #define ISM330_TIMESTAMP3                   0x43
 #define ISM330_TAP_CFG0                     0x56
 
+#define FIFO_DATA_OUT_TAG                     0x78
+
+typedef struct {
+    int16_t acc[3];   // [X, Y, Z]
+    int16_t gyro[3];  // [X, Y, Z]
+} IMU_Sample_t;
+
+
 
 // ADS1299 Functions
 HAL_StatusTypeDef ism330_Init(void);

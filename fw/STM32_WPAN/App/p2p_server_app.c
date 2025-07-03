@@ -94,6 +94,8 @@ uint8_t statusBuffer[3];
 static event_packet_t current_event_payload;
 
 
+static uint8_t motion_packet[18] = {0};
+
 static uint8_t accel_packet[MOTION_PACKET_SIZE] = {0};
 static uint8_t gyro_packet[MOTION_PACKET_SIZE] = {0};
 static uint32_t imu_packet_index = 0;
@@ -257,6 +259,8 @@ void P2PS_APP_Init(void)
 	UTIL_SEQ_RegTask( 1<< CFG_TASK_SWA_BUTTON_PUSHED_ID, UTIL_SEQ_RFU, SWA_Send_Notification ); //
 	UTIL_SEQ_RegTask( 1<< CFG_TASK_SWB_BUTTON_PUSHED_ID, UTIL_SEQ_RFU, SWB_Send_Notification ); //
 	UTIL_SEQ_RegTask( 1<< CFG_TASK_IMU_SAMPLE_ID, UTIL_SEQ_RFU, get_and_send_motion_samples ); //
+	UTIL_SEQ_RegTask( 1<< CFG_TASK_ADS_SAMPLE_ID, UTIL_SEQ_RFU, APP_BLE_Manage_ADS1299_event_exec ); //
+
 
 #else
 	UTIL_SEQ_RegTask( 1<< CFG_TASK_SWA_BUTTON_PUSHED_ID, UTIL_SEQ_RFU, SWA_Local_Notification ); //
@@ -306,6 +310,31 @@ void APP_SWB_Button_Action(void)
   return;
 }
 
+
+void APP_BLE_Manage_ADS1299_event(void){
+
+	if(P2P_Server_App_Context.Notification_Status==1){
+
+		if(sample_index==0){
+			buffered_packets_array[buffer_index][0] = packet_counter;
+		}
+
+		ADS1299_ReadSamples(statusBuffer, &buffered_packets_array[buffer_index][sample_index*SAMPLE_SIZE+1]);
+		sample_index++;
+
+		if(sample_index >= NB_SAMPLES_PER_PACKET){
+
+
+			buffer_index = (buffer_index + 1) % PACKETBUFFER_DEPTH;
+			packet_counter = (packet_counter + 1) % 128;
+			sample_index = 0;
+		}
+
+		UTIL_SEQ_SetTask( 1<<CFG_TASK_ADS_SAMPLE_ID, CFG_SCH_PRIO_0);
+	}
+}
+
+
 void SWA_Local_Notification(void)
 {
 	// insert local button management here
@@ -340,7 +369,6 @@ void SWB_Send_Notification(void)
 static uint8_t peripheralSwitch = 0;
 
 void get_and_send_motion_samples(void){
-
 	get_and_send_imu_sample();
 
 	/*
@@ -353,13 +381,27 @@ void get_and_send_motion_samples(void){
 }
 
 
+//static IMU_Sample_t imu_buffer[5] = {0};  // Room for 5 samples
+
+//int8_t* imu_sample[12] = {0};
 
 void get_and_send_imu_sample(void){
 
 	if(P2P_Server_App_Context.Notification_Status==1){
-		/*
-		int16_t* imu_sample = ism330_ReadIMU();
 
+		//int16_t* imu_sample = ism330_ReadIMU();
+		//int16_t* compass_sample = lis3mdl_ReadMag();
+
+		if(imu_sample == NULL){
+			HAL_GPIO_WritePin(LED_A_GPIO_Port, LED_A_Pin, GPIO_PIN_SET);
+			return;
+		}
+
+		//memcpy(motion_packet,imu_sample,6*sizeof(int16_t));
+		//memcpy(&motion_packet[sizeof(int16_t)*6],compass_sample,3*sizeof(int16_t));
+
+
+		/*
 		memcpy(&accel_packet[imu_packet_index*sizeof(int16_t)*3],imu_sample,3*sizeof(int16_t));
 		memcpy(&gyro_packet[imu_packet_index*sizeof(int16_t)*3],&imu_sample[3],3*sizeof(int16_t));
 
@@ -368,7 +410,12 @@ void get_and_send_imu_sample(void){
 		if(imu_packet_index>=MOTION_NB_SAMPLES_PER_PACKET){
 			imu_packet_index = 0;
 		}*/
-		APP_BLE_Send_IMU_Notification(accel_packet, gyro_packet);
+
+
+
+		if(APP_BLE_Send_IMU_Notification((uint8_t*)motion_packet)!=0){
+			HAL_GPIO_WritePin(LED_A_GPIO_Port, LED_A_Pin, GPIO_PIN_SET);
+		}
 	}
 }
 
@@ -376,16 +423,17 @@ void get_and_send_imu_sample(void){
 void get_and_send_compass_sample(void){
 
 	if(P2P_Server_App_Context.Notification_Status==1){
-		/*
+
 		int16_t* compass_sample = lis3mdl_ReadMag();
+		memcpy(&motion_packet[sizeof(int16_t)*6],compass_sample,3*sizeof(int16_t));
 
-		memcpy(&compass_packet[compass_packet_index*sizeof(int16_t)*3],compass_sample,3*sizeof(int16_t));
+		//memcpy(&compass_packet[compass_packet_index*sizeof(int16_t)*3],compass_sample,3*sizeof(int16_t));
 
-		compass_packet_index++;
+		//compass_packet_index++;
 
-		if(compass_packet_index>=MOTION_NB_SAMPLES_PER_PACKET){
-			compass_packet_index = 0;
-		}*/
+		//if(compass_packet_index>=MOTION_NB_SAMPLES_PER_PACKET){
+		//	compass_packet_index = 0;
+		//}*/
 		//APP_BLE_Send_Compass_Notification(compass_packet);
 	}
 }
@@ -438,28 +486,10 @@ void fill_and_send_packet(void)
 }
 
 
-
-
-void APP_BLE_Manage_ADS1299_event(void)
+void APP_BLE_Manage_ADS1299_event_exec(void)
 {
-	if(P2P_Server_App_Context.Notification_Status){
-
-		if(sample_index==0){
-			buffered_packets_array[buffer_index][0] = packet_counter;
-		}
-
-		ADS1299_ReadSamples(statusBuffer, &buffered_packets_array[buffer_index][sample_index*SAMPLE_SIZE+1]);
-		sample_index++;
-
-		if(sample_index >= NB_SAMPLES_PER_PACKET){
-			if(APP_BLE_Send_EEGData_Notification(buffered_packets_array[buffer_index], PACKET_SIZE)!=0){
-				HAL_GPIO_WritePin(LED_A_GPIO_Port, LED_A_Pin, GPIO_PIN_SET);
-			}
-
-			buffer_index = (buffer_index + 1) % PACKETBUFFER_DEPTH;
-			packet_counter = (packet_counter + 1) % 128;
-			sample_index = 0;
-		}
+	if(APP_BLE_Send_EEGData_Notification(buffered_packets_array[buffer_index], PACKET_SIZE)!=0){
+		HAL_GPIO_WritePin(LED_A_GPIO_Port, LED_A_Pin, GPIO_PIN_SET);
 	}
 }
 

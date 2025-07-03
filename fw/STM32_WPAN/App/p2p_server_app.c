@@ -109,6 +109,8 @@ void SWB_Send_Notification(void);
 void SWA_Local_Notification(void);
 void SWB_Local_Notification(void);
 
+void APP_BLE_Manage_ADS1299_event_exec(void);
+
 void get_and_send_motion_samples(void);
 
 void get_and_send_imu_sample(void);
@@ -324,13 +326,13 @@ void APP_BLE_Manage_ADS1299_event(void){
 
 		if(sample_index >= NB_SAMPLES_PER_PACKET){
 
+			// this will call BLE transfer
+			UTIL_SEQ_SetTask( 1<<CFG_TASK_ADS_SAMPLE_ID, CFG_SCH_PRIO_0);
 
 			buffer_index = (buffer_index + 1) % PACKETBUFFER_DEPTH;
 			packet_counter = (packet_counter + 1) % 128;
 			sample_index = 0;
 		}
-
-		UTIL_SEQ_SetTask( 1<<CFG_TASK_ADS_SAMPLE_ID, CFG_SCH_PRIO_0);
 	}
 }
 
@@ -392,10 +394,10 @@ void get_and_send_imu_sample(void){
 		//int16_t* imu_sample = ism330_ReadIMU();
 		//int16_t* compass_sample = lis3mdl_ReadMag();
 
-		if(imu_sample == NULL){
-			HAL_GPIO_WritePin(LED_A_GPIO_Port, LED_A_Pin, GPIO_PIN_SET);
-			return;
-		}
+		//if(imu_sample == NULL){
+		HAL_GPIO_WritePin(LED_A_GPIO_Port, LED_A_Pin, GPIO_PIN_SET);
+		return;
+		//}
 
 		//memcpy(motion_packet,imu_sample,6*sizeof(int16_t));
 		//memcpy(&motion_packet[sizeof(int16_t)*6],compass_sample,3*sizeof(int16_t));
@@ -488,7 +490,18 @@ void fill_and_send_packet(void)
 
 void APP_BLE_Manage_ADS1299_event_exec(void)
 {
-	if(APP_BLE_Send_EEGData_Notification(buffered_packets_array[buffer_index], PACKET_SIZE)!=0){
+
+	uint8_t buffer_index_tmp = 0;
+
+	// need to send last index
+	if(buffer_index==0){
+		buffer_index_tmp = PACKETBUFFER_DEPTH;
+	}else{
+		buffer_index_tmp = buffer_index-1;
+	}
+
+
+	if(APP_BLE_Send_EEGData_Notification(buffered_packets_array[buffer_index_tmp], PACKET_SIZE)!=0){
 		HAL_GPIO_WritePin(LED_A_GPIO_Port, LED_A_Pin, GPIO_PIN_SET);
 	}
 }

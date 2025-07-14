@@ -899,7 +899,7 @@ void MX_TIM17_Init(void)
     htim17.Instance = TIM17;
     htim17.Init.Prescaler = (uint32_t)(HAL_RCC_GetPCLK2Freq() / 1000) - 1;  // TIM17 is on APB2
     htim17.Init.CounterMode = TIM_COUNTERMODE_UP;
-    htim17.Init.Period = 25 - 1;
+    htim17.Init.Period = 20 - 1;
     htim17.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
     htim17.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
     htim17.Init.RepetitionCounter = 0;

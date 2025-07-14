@@ -374,48 +374,18 @@ static uint8_t peripheralSwitch = 0;
 
 void get_and_send_motion_samples(void){
 	get_and_send_imu_sample();
-
-	/*
-	if(peripheralSwitch){
-	}else{
-		get_and_send_compass_sample();
-	}
-	peripheralSwitch = (peripheralSwitch == 1) ? 0 : 1;
-	*/
 }
 
-
-//static IMU_Sample_t imu_buffer[5] = {0};  // Room for 5 samples
-
-//int8_t* imu_sample[12] = {0};
 
 void get_and_send_imu_sample(void){
 
 	if(P2P_Server_App_Context.Notification_Status==1){
 
 		int16_t* imu_sample = ism330_ReadIMU();
-		//int16_t* compass_sample = lis3mdl_ReadMag();
-
-		//if(imu_sample == NULL){
-		//HAL_GPIO_WritePin(LED_A_GPIO_Port, LED_A_Pin, GPIO_PIN_SET);
-		//return;
-		//}
+		int16_t* compass_sample = lis3mdl_ReadMag();
 
 		memcpy(motion_packet,imu_sample,6*sizeof(int16_t));
-		//memcpy(&motion_packet[sizeof(int16_t)*6],compass_sample,3*sizeof(int16_t));
-
-
-		/*
-		memcpy(&accel_packet[imu_packet_index*sizeof(int16_t)*3],imu_sample,3*sizeof(int16_t));
-		memcpy(&gyro_packet[imu_packet_index*sizeof(int16_t)*3],&imu_sample[3],3*sizeof(int16_t));
-
-		imu_packet_index++;
-
-		if(imu_packet_index>=MOTION_NB_SAMPLES_PER_PACKET){
-			imu_packet_index = 0;
-		}*/
-
-
+		memcpy(&motion_packet[sizeof(int16_t)*6],compass_sample,3*sizeof(int16_t));
 
 		if(APP_BLE_Send_IMU_Notification((uint8_t*)motion_packet)!=0){
 			HAL_GPIO_WritePin(LED_A_GPIO_Port, LED_A_Pin, GPIO_PIN_SET);

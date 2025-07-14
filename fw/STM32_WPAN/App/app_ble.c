@@ -632,7 +632,7 @@ static tBleStatus Add_Motion_Notify_Service(void)
     COPY_ACCEL_UUID(accel_char_uuid);
     ret = aci_gatt_add_char(BleApplicationContext.BleApplicationContext_legacy.motion_service_handle,
                            UUID_TYPE_128, (Char_UUID_t *) accel_char_uuid,
-                           12,
+                           18,
                            CHAR_PROP_NOTIFY,
                            ATTR_PERMISSION_NONE,
 						   GATT_NOTIFY_ATTRIBUTE_WRITE,
@@ -1082,7 +1082,7 @@ uint8_t  APP_BLE_Send_IMU_Notification(uint8_t* accel)
 	ret = aci_gatt_update_char_value(BleApplicationContext.BleApplicationContext_legacy.motion_service_handle,
 									BleApplicationContext.accel_char_handle,
 									0, /* offset */
-									12, /* data length */
+									18, /* data length */
 									accel);
 
 	/*

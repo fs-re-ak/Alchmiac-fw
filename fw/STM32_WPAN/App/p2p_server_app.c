@@ -47,6 +47,7 @@
     uint8_t             ButtonStatus;
  }P2P_ButtonCharValue_t;
 
+
 typedef struct
 {
   uint8_t               Notification_Status; /* used to check if P2P Server is enabled to Notify */
@@ -61,12 +62,10 @@ typedef struct
 
 #define MAX_24BIT_VALUE 0xFFFFFF  // Maximum value for 24-bit integer
 
-
 #define PACKETBUFFER_DEPTH 30
 #define NB_SAMPLES_PER_PACKET 10
 #define SAMPLE_SIZE 24
 #define PACKET_SIZE (NB_SAMPLES_PER_PACKET * SAMPLE_SIZE + 1)
-
 
 #define MOTION_NB_SAMPLES_PER_PACKET 10
 #define MOTION_SAMPLE_SIZE sizeof(uint16_t)*3
@@ -88,7 +87,6 @@ static uint8_t read_index = 0;
 static uint8_t sample_index = 0;
 
 static uint8_t packet_counter = 0;
-static uint32_t sample_counter = 0; // dev only
 
 uint8_t statusBuffer[3];
 
@@ -96,13 +94,6 @@ static event_packet_t current_event_payload;
 
 
 static uint8_t motion_packet[18] = {0};
-
-static uint8_t accel_packet[MOTION_PACKET_SIZE] = {0};
-static uint8_t gyro_packet[MOTION_PACKET_SIZE] = {0};
-static uint32_t imu_packet_index = 0;
-
-static uint8_t compass_packet[MOTION_PACKET_SIZE] = {0};
-static uint32_t compass_packet_index = 0;
 
 void SWA_Send_Notification(void);
 void SWB_Send_Notification(void);
@@ -114,8 +105,6 @@ void APP_BLE_Manage_ADS1299_event_exec(void);
 
 void get_and_send_motion_samples(void);
 
-void get_and_send_imu_sample(void);
-void get_and_send_compass_sample(void);
 
 /**
  * START of Section BLE_APP_CONTEXT
@@ -314,30 +303,6 @@ void APP_SWB_Button_Action(void)
 }
 
 
-void APP_BLE_Manage_ADS1299_event(void){
-
-	if(P2P_Server_App_Context.Notification_Status==1){
-
-		if(sample_index==0){
-			buffered_packets_array[buffer_index][0] = packet_counter;
-		}
-
-		ADS1299_ReadSamples(statusBuffer, &buffered_packets_array[buffer_index][sample_index*SAMPLE_SIZE+1]);
-		sample_index++;
-
-		if(sample_index >= NB_SAMPLES_PER_PACKET){
-
-
-			buffer_index = (buffer_index + 1) % PACKETBUFFER_DEPTH;
-			packet_counter = (packet_counter + 1) % 128;
-			sample_index = 0;
-
-			// this will call BLE transfer
-			UTIL_SEQ_SetTask( 1<<CFG_TASK_ADS_SAMPLE_ID, CFG_SCH_PRIO_0);
-		}
-	}
-}
-
 
 void SWA_Local_Notification(void)
 {
@@ -370,14 +335,7 @@ void SWB_Send_Notification(void)
 	APP_BLE_Send_Event_Notification(&current_event_payload);
 }
 
-static uint8_t peripheralSwitch = 0;
-
 void get_and_send_motion_samples(void){
-	get_and_send_imu_sample();
-}
-
-
-void get_and_send_imu_sample(void){
 
 	if(P2P_Server_App_Context.Notification_Status==1){
 
@@ -390,25 +348,6 @@ void get_and_send_imu_sample(void){
 		if(APP_BLE_Send_IMU_Notification((uint8_t*)motion_packet)!=0){
 			HAL_GPIO_WritePin(LED_A_GPIO_Port, LED_A_Pin, GPIO_PIN_SET);
 		}
-	}
-}
-
-
-void get_and_send_compass_sample(void){
-
-	if(P2P_Server_App_Context.Notification_Status==1){
-
-		int16_t* compass_sample = lis3mdl_ReadMag();
-		memcpy(&motion_packet[sizeof(int16_t)*6],compass_sample,3*sizeof(int16_t));
-
-		//memcpy(&compass_packet[compass_packet_index*sizeof(int16_t)*3],compass_sample,3*sizeof(int16_t));
-
-		//compass_packet_index++;
-
-		//if(compass_packet_index>=MOTION_NB_SAMPLES_PER_PACKET){
-		//	compass_packet_index = 0;
-		//}*/
-		//APP_BLE_Send_Compass_Notification(compass_packet);
 	}
 }
 
@@ -426,56 +365,53 @@ void get_and_send_compass_sample(void){
 /* USER CODE BEGIN FD_LOCAL_FUNCTIONS*/
 
 
-void fill_and_send_packet(void)
-{
 
-/*
-  // are we streaming ?
-  if(P2P_Server_App_Context.Notification_Status){
+void APP_BLE_Manage_ADS1299_event(void){
 
-    // add a new packet to the buffer
-    buffered_packets_array[buffer_index][0] = packet_counter;
+	if(P2P_Server_App_Context.Notification_Status==1){
 
-    // index is adjusted to add packet counter at start of packet
-    for(int i = 1; i < PACKET_SIZE; i += 3)
-    {
-        uint16_t index = i;
-        // Split 24-bit counter into 3 bytes
-        buffered_packets_array[buffer_index][index]     = (sample_counter >> 16) & 0xFF;  // Most significant byte
-        buffered_packets_array[buffer_index][index + 1] = (sample_counter >> 8) & 0xFF;   // Middle byte
-        buffered_packets_array[buffer_index][index + 2] = sample_counter & 0xFF;          // Least significant byte
+		if(sample_index==0){
+			buffered_packets_array[buffer_index][0] = packet_counter;
+		}
 
-        sample_counter = (sample_counter + 1) & MAX_24BIT_VALUE;
-    }
+		ADS1299_ReadSamples(statusBuffer, &buffered_packets_array[buffer_index][sample_index*SAMPLE_SIZE+1]);
+		sample_index++;
 
-    APP_BLE_Send_EEGData_Notification(buffered_packets_array[buffer_index], PACKET_SIZE);
+		if(sample_index >= NB_SAMPLES_PER_PACKET){
 
-    // increment the buffer index
-    buffer_index = (buffer_index + 1) % PACKETBUFFER_DEPTH;
-    packet_counter = (packet_counter + 1) % 128;
 
-  }
-*/
+			buffer_index = (buffer_index + 1) % PACKETBUFFER_DEPTH;
+			packet_counter = (packet_counter + 1) % 128;
+			sample_index = 0;
 
+			// this will call BLE transfer
+			UTIL_SEQ_SetTask( 1<<CFG_TASK_ADS_SAMPLE_ID, CFG_SCH_PRIO_0);
+		}
+	}
 }
 
+static uint8_t error_count = 0;
 
 void APP_BLE_Manage_ADS1299_event_exec(void)
 {
-	//TODO: will need to validate we're sending the right buffer, somehow (need read pointer)
-
-	uint8_t buffer_index_tmp = 0;
 
 	if (read_index != buffer_index) {
 		if(APP_BLE_Send_EEGData_Notification(buffered_packets_array[read_index], PACKET_SIZE)!=0){
 			HAL_GPIO_WritePin(LED_A_GPIO_Port, LED_A_Pin, GPIO_PIN_SET);
 			UTIL_SEQ_SetTask( 1<<CFG_TASK_ADS_SAMPLE_ID, CFG_SCH_PRIO_0);
+			error_count++;
+
+			if(error_count>2){
+				HAL_GPIO_WritePin(LED_A_GPIO_Port, LED_A_Pin, GPIO_PIN_SET);
+			}
 			return;
+		}else{
+			error_count = 0;
 		}
+
 	    read_index = (read_index + 1) % PACKETBUFFER_DEPTH;
-	}else{
-		HAL_GPIO_WritePin(LED_A_GPIO_Port, LED_A_Pin, GPIO_PIN_SET);
 	}
+
 
 }
 

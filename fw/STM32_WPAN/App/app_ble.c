@@ -37,6 +37,7 @@
 #include "hermes_ble.h"
 #include "gpios.h"
 #include "common_blesvc.h"
+#include "ads1299.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -173,7 +174,7 @@ typedef struct
 
   uint16_t eeg_data_char_handle;
   uint16_t event_char_handle;
-  uint16_t accel_char_handle;
+  uint16_t motion_char_handle;
   uint16_t gyro_char_handle;
   uint16_t compass_char_handle;
   uint16_t eeg_config_char_handle;
@@ -291,6 +292,7 @@ static void Connection_Interval_Update_Req(void);
 static tBleStatus Add_EEG_Stream_Notify_Service(void);
 static tBleStatus Add_Event_Notify_Service(void);
 static tBleStatus Add_Motion_Notify_Service(void);
+static void eeg_config_handler(uint8_t msg[4]);
 
 /* USER CODE END PFP */
 
@@ -525,7 +527,7 @@ static tBleStatus Add_EEG_Stream_Notify_Service(void)
     COPY_EEG_DATA_UUID(eeg_stream_char_uuid);
     ret = aci_gatt_add_char(BleApplicationContext.BleApplicationContext_legacy.eeg_service_handle,
                            UUID_TYPE_128, (Char_UUID_t *) eeg_stream_char_uuid,
-                           NEW_NOTIFY_CHAR_VALUE_LENGTH,
+                           NEW_NOTIFY_CHAR_VALUE_LENGTH, //241
                            CHAR_PROP_NOTIFY,
                            ATTR_PERMISSION_NONE,
 						   GATT_NOTIFY_ATTRIBUTE_WRITE,
@@ -543,7 +545,7 @@ static tBleStatus Add_EEG_Stream_Notify_Service(void)
     COPY_EEG_CONFIG_UUID(eeg_config_char_uuid);
     ret = aci_gatt_add_char(BleApplicationContext.BleApplicationContext_legacy.eeg_service_handle,
                            UUID_TYPE_128, (Char_UUID_t *) eeg_config_char_uuid,
-                           3, // 3 bytes
+                           4, // 4 bytes
 						   CHAR_PROP_WRITE_WITHOUT_RESP|CHAR_PROP_READ,
                            ATTR_PERMISSION_NONE,
 						   GATT_NOTIFY_ATTRIBUTE_WRITE,
@@ -610,9 +612,7 @@ static tBleStatus Add_Motion_Notify_Service(void)
 {
     tBleStatus ret = BLE_STATUS_SUCCESS;
     uint8_t motion_service_uuid[16];
-    uint8_t accel_char_uuid[16];
-    uint8_t gyro_char_uuid[16];
-    uint8_t compass_char_uuid[16];
+    uint8_t motion_char_uuid[16];
 
     // Add service
     COPY_MOTION_SERVICE_UUID(motion_service_uuid);
@@ -629,63 +629,22 @@ static tBleStatus Add_Motion_Notify_Service(void)
     }
 
     // Add characteristic
-    COPY_ACCEL_UUID(accel_char_uuid);
+    COPY_MOTION_UUID(motion_char_uuid);
     ret = aci_gatt_add_char(BleApplicationContext.BleApplicationContext_legacy.motion_service_handle,
-                           UUID_TYPE_128, (Char_UUID_t *) accel_char_uuid,
+                           UUID_TYPE_128, (Char_UUID_t *) motion_char_uuid,
                            18,
                            CHAR_PROP_NOTIFY,
                            ATTR_PERMISSION_NONE,
 						   GATT_NOTIFY_ATTRIBUTE_WRITE,
                            10,
                            0,
-                           &(BleApplicationContext.accel_char_handle));
+                           &(BleApplicationContext.motion_char_handle));
 
     if (ret != BLE_STATUS_SUCCESS)
     {
         APP_DBG_MSG("Error adding New Notify Characteristic - ret=0x%x\n", ret);
         return ret;
     }
-
-    /*
-    // Add characteristic
-    COPY_GYRO_UUID(gyro_char_uuid);
-    ret = aci_gatt_add_char(BleApplicationContext.BleApplicationContext_legacy.motion_service_handle,
-                           UUID_TYPE_128, (Char_UUID_t *) gyro_char_uuid,
-                           6,
-                           CHAR_PROP_NOTIFY,
-                           ATTR_PERMISSION_NONE,
-						   GATT_NOTIFY_ATTRIBUTE_WRITE,
-                           10,
-                           CHAR_VALUE_LEN_VARIABLE,
-                           &(BleApplicationContext.gyro_char_handle));
-
-    if (ret != BLE_STATUS_SUCCESS)
-    {
-        APP_DBG_MSG("Error adding New Notify Characteristic - ret=0x%x\n", ret);
-        return ret;
-    }*/
-
-
-    // Add characteristic¸
-    /*
-    COPY_COMPASS_UUID(compass_char_uuid);
-    ret = aci_gatt_add_char(BleApplicationContext.BleApplicationContext_legacy.motion_service_handle,
-                           UUID_TYPE_128, (Char_UUID_t *) compass_char_uuid,
-                           6,
-                           CHAR_PROP_NOTIFY,
-                           ATTR_PERMISSION_NONE,
-						   GATT_NOTIFY_ATTRIBUTE_WRITE,
-                           10,
-                           CHAR_VALUE_LEN_VARIABLE,
-                           &(BleApplicationContext.compass_char_handle));
-
-    if (ret != BLE_STATUS_SUCCESS)
-    {
-        APP_DBG_MSG("Error adding New Notify Characteristic - ret=0x%x\n", ret);
-        return ret;
-    }
-
-    */
 
 
     return ret;
@@ -1080,7 +1039,7 @@ uint8_t  APP_BLE_Send_IMU_Notification(uint8_t* accel)
     uint8_t  ret = BLE_STATUS_INVALID_PARAMS;
 
 	ret = aci_gatt_update_char_value(BleApplicationContext.BleApplicationContext_legacy.motion_service_handle,
-									BleApplicationContext.accel_char_handle,
+									BleApplicationContext.motion_char_handle,
 									0, /* offset */
 									18, /* data length */
 									accel);
@@ -1781,33 +1740,31 @@ static SVCCTL_EvtAckStatus_t Hermes_Event_Handler(void *Event)
       {
         case ACI_GATT_ATTRIBUTE_MODIFIED_VSEVT_CODE:
        {
-          attribute_modified = (aci_gatt_attribute_modified_event_rp0*)blecore_evt->data;
-            if(attribute_modified->Attr_Handle == (BleApplicationContext.eeg_data_char_handle + 2))
-            {
-              /**
-               * Descriptor handle
-               */
-              return_value = SVCCTL_EvtAckFlowEnable;
-              /**
-               * Notify to application
-               */
-              if(attribute_modified->Attr_Data[0] & COMSVC_Notification)
-              {
-                Notification.P2P_Evt_Opcode = P2PS_STM__NOTIFY_ENABLED_EVT;
-                P2PS_STM_App_Notification(&Notification);
-              }
-              else
-              {
-                Notification.P2P_Evt_Opcode = P2PS_STM_NOTIFY_DISABLED_EVT;
-                P2PS_STM_App_Notification(&Notification);
-              }
-            }
-            else if(attribute_modified->Attr_Handle == (BleApplicationContext.eeg_config_char_handle + 1))
-            {
-            	if(attribute_modified->Attr_Data[0]==0x02){
-            		HAL_GPIO_WritePin(LED_A_GPIO_Port, LED_A_Pin, attribute_modified->Attr_Data[1]!=0);
-                }
-            }
+			attribute_modified = (aci_gatt_attribute_modified_event_rp0*)blecore_evt->data;
+			if(attribute_modified->Attr_Handle == (BleApplicationContext.eeg_data_char_handle + 2))
+			{
+				/**
+				* Descriptor handle
+				*/
+				return_value = SVCCTL_EvtAckFlowEnable;
+				/**
+				* Notify to application
+				*/
+				if(attribute_modified->Attr_Data[0] & COMSVC_Notification)
+				{
+					Notification.P2P_Evt_Opcode = P2PS_STM__NOTIFY_ENABLED_EVT;
+					P2PS_STM_App_Notification(&Notification);
+				}
+				else
+				{
+					Notification.P2P_Evt_Opcode = P2PS_STM_NOTIFY_DISABLED_EVT;
+					P2PS_STM_App_Notification(&Notification);
+				}
+			}
+			else if(attribute_modified->Attr_Handle == (BleApplicationContext.eeg_config_char_handle + 1))
+			{
+				eeg_config_handler(attribute_modified->Attr_Data);
+			}
 
         }
         break;
@@ -1824,6 +1781,60 @@ static SVCCTL_EvtAckStatus_t Hermes_Event_Handler(void *Event)
 
   return(return_value);
 }/* end SVCCTL_EvtAckStatus_t */
+
+
+
+static void eeg_config_handler(uint8_t msg[4]){
+
+	/*
+	 * Byte 0: Command type
+	 * 		- 0x00 Reserved
+	 * 		- 0x01 Operation
+	 * 		- 0x02 Register Access
+	 * 		- 0x03 Predef Mode
+	 * Byte 1: operation
+	 * Byte 2: address
+	 * Byte 3: value
+	 */
+
+	HAL_GPIO_WritePin(LED_A_GPIO_Port, LED_A_Pin, GPIO_PIN_SET);
+
+	switch(msg[0]){
+
+	case 0x01:
+		if(msg[1]==0x00){
+			stopStreaming();
+		}else if(msg[1]==0x01){
+			startStreaming();
+		}
+		break;
+
+	case 0x02:
+
+		if(msg[1]==0x00){
+			//read register, unsupported
+		}else if(msg[1]==0x01){
+			writeRegister(msg[2], msg[3]);
+		}
+
+		break;
+
+	case 0x03:
+		setPredefMode(msg[1]);
+		break;
+
+
+
+	default:
+
+
+	}
+
+
+
+
+
+}
 
 
 

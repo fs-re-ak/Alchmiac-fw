@@ -36,7 +36,6 @@ void EEGRecordingSequence();
 
 void ADS1299_Init(){
 
-    //send_ads1299_command(ADS1299_SDATAC);
 	PowerUpSequence();
 
 }
@@ -118,8 +117,94 @@ static void PowerUpSequence(){
 }
 
 
+void TestModeSequence(){
+
+	uint8_t i = 0;
+	uint8_t register_value = 0x00;
+	uint8_t channset_value[ADS1299_CHANNELS] = {0};
+
+	// Wait 1ms.
+	HAL_Delay(20);
+
+	send_ads1299_command(ADS1299_SDATAC);
+
+	register_value = 0x96;
+	write_ads1299_register(ADS1299_REG_CONFIG1, 1, &register_value);
+	register_value = 0xD0;
+	write_ads1299_register(ADS1299_REG_CONFIG2, 1, &register_value);
+	HAL_Delay(1);
+
+	register_value = 0xE0; //BIAS-disabled
+	write_ads1299_register(ADS1299_REG_CONFIG3, 1, &register_value);
+	HAL_Delay(1);
+	register_value = 0x00; //BIAS-disabled
+	write_ads1299_register(ADS1299_REG_BIAS_SENSP, 1, &register_value);
+	HAL_Delay(1);
+	register_value = 0x00;
+	write_ads1299_register(ADS1299_REG_BIAS_SENSN, 1, &register_value);
+	HAL_Delay(1);
+	register_value = 0x20;
+	write_ads1299_register(ADS1299_REG_MISC1, 1, &register_value);
+	HAL_Delay(1);
+
+	for(i=0;i<ADS1299_CHANNELS;i++){
+		channset_value[i] = 0x55; // test mode
+	}
+
+	write_ads1299_register(ADS1299_REG_CH1SET, ADS1299_CHANNELS, channset_value);
+
+	HAL_Delay(1);
+
+	send_ads1299_command(ADS1299_RDATAC);
+
+}
 
 
+void OffModeSequence(){
+
+	uint8_t i = 0;
+	uint8_t register_value = 0x00;
+	uint8_t channset_value[ADS1299_CHANNELS] = {0};
+
+	// Wait 1ms.
+	HAL_Delay(20);
+
+	send_ads1299_command(ADS1299_SDATAC);
+	register_value = 0xC0;
+	write_ads1299_register(ADS1299_REG_CONFIG2, 1, &register_value);
+	HAL_Delay(1);
+
+	register_value = 0xEC; //BIAS-enabled
+	//register_value = 0xE0; //BIAS-disabled
+	write_ads1299_register(ADS1299_REG_CONFIG3, 1, &register_value);
+	HAL_Delay(1);
+	//register_value = 0x00; //BIAS-disabled
+	register_value = 0xFF; //BIAS-enabled
+	write_ads1299_register(ADS1299_REG_BIAS_SENSP, 1, &register_value);
+	HAL_Delay(1);
+	register_value = 0x00;
+	write_ads1299_register(ADS1299_REG_BIAS_SENSN, 1, &register_value);
+	HAL_Delay(1);
+	register_value = 0x20;
+	write_ads1299_register(ADS1299_REG_MISC1, 1, &register_value);
+	HAL_Delay(1);
+
+	for(i=0;i<ADS1299_CHANNELS;i++){
+		channset_value[i] = 0xD1; // channel down + shorted
+	}
+
+	write_ads1299_register(ADS1299_REG_CH1SET, ADS1299_CHANNELS, channset_value);
+
+	HAL_Delay(1);
+
+	send_ads1299_command(ADS1299_RDATAC);
+
+}
+
+
+void ImpedanceModeSequence(){
+	// TODO
+}
 
 void EEGRecordingSequence(){
 
@@ -134,7 +219,6 @@ void EEGRecordingSequence(){
 	register_value = 0xC0;
 	write_ads1299_register(ADS1299_REG_CONFIG2, 1, &register_value);
 	HAL_Delay(1);
-
 
 	register_value = 0xEC; //BIAS-enabled
 	//register_value = 0xE0; //BIAS-disabled
@@ -155,10 +239,6 @@ void EEGRecordingSequence(){
 		channset_value[i] = 0x50;
 	}
 
-	//for(i=4;i<ADS1299_CHANNELS;i++){
-	//	channset_value[i] = 0x01;
-	//}
-
 	write_ads1299_register(ADS1299_REG_CH1SET, ADS1299_CHANNELS, channset_value);
 
 	HAL_Delay(1);
@@ -166,42 +246,6 @@ void EEGRecordingSequence(){
 	send_ads1299_command(ADS1299_RDATAC);
 
 }
-
-
-/*
-void EEGRecordingSequence(){
-
-	uint8_t i = 0;
-	uint8_t register_value = 0x00;
-	uint8_t channset_value[ADS1299_CHANNELS] = {0};
-
-  // Wait 1ms.
-  HAL_Delay(20);
-
-  send_ads1299_command(ADS1299_SDATAC);
-  register_value = 0xC0;
-  write_ads1299_register(ADS1299_REG_CONFIG2, 1, &register_value);
-  register_value = 0xEC;
-  write_ads1299_register(ADS1299_REG_CONFIG3, 1, &register_value);
-  register_value = 0xFF;
-  write_ads1299_register(ADS1299_REG_BIAS_SENSP, 1, &register_value);
-  register_value = 0x20;
-  write_ads1299_register(ADS1299_REG_MISC1, 1, &register_value);
-
-
-
-  for(i=0;i<ADS1299_CHANNELS;i++){
-    channset_value[i] = 0x50;
-  }
-
-  write_ads1299_register(ADS1299_REG_CH1SET, ADS1299_CHANNELS, channset_value);
-
-  HAL_Delay(1);
-
-  send_ads1299_command(ADS1299_RDATAC);
-
-}*/
-
 
 
 
@@ -348,6 +392,46 @@ HAL_StatusTypeDef ADS1299_ReadSamples(uint8_t *statusBuffer, uint8_t *dataBuffer
 
 
 
+
+void startStreaming(){
+	send_ads1299_command(ADS1299_RDATAC);
+}
+
+void stopStreaming(){
+	send_ads1299_command(ADS1299_SDATAC);
+}
+
+void writeRegister(uint8_t address, uint8_t register_value){
+	send_ads1299_command(ADS1299_SDATAC);
+	HAL_Delay(5);
+	write_ads1299_register(address, 1, &register_value);
+	HAL_Delay(5);
+}
+
+void setPredefMode(uint8_t mode){
+
+	switch(mode){
+
+	case 0x00:
+		OffModeSequence();
+		break;
+
+	case 0x01:
+		TestModeSequence();
+		break;
+
+	case 0x02:
+		EEGRecordingSequence();
+		break;
+
+	case 0x03:
+		ImpedanceModeSequence();
+		break;
+
+
+	}
+
+}
 
 
 

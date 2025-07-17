@@ -73,5 +73,10 @@ void ADS1299_Init();
 HAL_StatusTypeDef ADS1299_ReadSamples(uint8_t *statusBuffer, uint8_t *dataBuffer);
 uint8_t read_ads1299_register(uint8_t start_addr, uint8_t num_regs, uint8_t *buffer);
 
+void startStreaming();
+void stopStreaming();
+void writeRegister(uint8_t address, uint8_t register_value);
+void setPredefMode(uint8_t mode);
+
 
 #endif

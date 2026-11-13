@@ -50,6 +50,12 @@ typedef struct {
 	uint32_t pending_tasks;
 	int      nb_imu_notifications;
 	uint8_t  last_imu[18];
+
+	/* BLE TX congestion: EEG notifications are refused while nb_eeg_reads < ble_busy_until */
+	int      ble_busy_until;
+	int      nb_refused_sends;
+	int      last_sent_index;    /* packet index of the last EEG notification sent, -1 = none */
+	int      index_gaps;         /* EEG notifications whose index does not follow the previous one */
 } fake_state_t;
 
 extern fake_state_t fake;

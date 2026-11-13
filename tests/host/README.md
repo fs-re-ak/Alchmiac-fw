@@ -21,6 +21,8 @@ Ce qui est vérifié :
 - la lecture en trame de 32 bits (donnée + relecture de la configuration) et les cas d'erreur
   (ADS1118 absent, erreur SPI au lancement ou à la lecture : valeur invalide `0x8000`) ;
 - le comportement existant : aucun accès sans abonnement BLE.
+- la file d'envoi BLE : quand la pile BLE refuse des notifications (engorgement de 100 ms chaque
+  seconde), le retard est rattrapé ensuite, sans paquet perdu ni saut d'index.
 
 ## Motif de test BLE
 

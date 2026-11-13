@@ -49,6 +49,26 @@ static void run_drdy(int nb_drdy){
 	}
 }
 
+/*
+ * Same, with a sequencer model: after each DRDY, the pending BLE task runs up to
+ * max_runs times (one run per pending bit, as UTIL_SEQ does; several SetTask before
+ * a run collapse into one). Every period EEG reads, the BLE stack refuses the
+ * notifications for busy_reads EEG periods (TX pool full until a connection event).
+ */
+static void run_drdy_congested(int nb_drdy, int period, int busy_reads, int max_runs){
+	for(int k = 0; k < nb_drdy; k++){
+		if(k % period == 3){
+			fake.ble_busy_until = fake.nb_eeg_reads + busy_reads;
+		}
+		fake.current_eeg_index = fake.nb_eeg_reads % EEG_SAMPLES_PER_PACKET;
+		APP_BLE_Manage_ADS1299_event();
+		for(int r = 0; r < max_runs && (fake.pending_tasks & (1u << CFG_TASK_ADS_SAMPLE_ID)); r++){
+			fake.pending_tasks &= ~(1u << CFG_TASK_ADS_SAMPLE_ID);
+			APP_BLE_Manage_ADS1299_event_exec();
+		}
+	}
+}
+
 /* ------------------------------------------------------------------------ */
 
 static void test_constants(void){
@@ -194,6 +214,21 @@ static void test_spi_error_during_start(void){
 	CHECK(fake.ads1118_cs == GPIO_PIN_SET, "CS relache apres l'erreur");
 }
 
+static void test_ble_backlog_drained(void){
+	printf("test_ble_backlog_drained (envois refuses par la pile BLE : le retard doit etre rattrape)\n");
+	const int nb_packets = 1000;   /* 40 s at 250 Hz */
+	fake_reset();
+	enable_notifications(1);
+	/* The BLE stack is busy for 25 EEG periods (100 ms, two connection intervals) every second. */
+	run_drdy_congested(nb_packets * EEG_SAMPLES_PER_PACKET, 250, 25, 4);
+	enable_notifications(0);
+
+	CHECK(fake.nb_refused_sends > 0, "le scenario doit provoquer des refus d'envoi");
+	CHECK(fake.index_gaps == 0, "%d saut(s) d'index : paquets perdus par le firmware", fake.index_gaps);
+	CHECK(fake.nb_notifications >= nb_packets - 1, "%d paquets envoyes sur %d produits : retard non rattrape",
+	      fake.nb_notifications, nb_packets);
+}
+
 int main(void){
 	test_constants();
 	test_absent();
@@ -201,6 +236,7 @@ int main(void){
 	test_streaming();
 	test_spi_error_during_read();
 	test_spi_error_during_start();
+	test_ble_backlog_drained();
 
 	printf("\n%d verifications, %d echec(s)\n", checks, failures);
 	return failures ? 1 : 0;

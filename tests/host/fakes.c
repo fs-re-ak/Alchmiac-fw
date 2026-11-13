@@ -15,6 +15,7 @@ void fake_reset(void){
 	fake.ads1118_cs = GPIO_PIN_SET;
 	fake.config = ADS1118_DEFAULT_CONFIG;
 	fake.fail_transfer_at = -1;
+	fake.last_sent_index = -1;
 }
 
 /* ---------------- HAL ---------------- */
@@ -96,6 +97,14 @@ HAL_StatusTypeDef ADS1299_ReadSamples(uint8_t *statusBuffer, uint8_t *dataBuffer
 /* ---------------- BLE / sequencer ---------------- */
 
 uint8_t APP_BLE_Send_EEGData_Notification(uint8_t *payload, uint8_t length){
+	if(fake.nb_eeg_reads < fake.ble_busy_until){
+		fake.nb_refused_sends++;
+		return 0x64;   /* BLE_STATUS_INSUFFICIENT_RESOURCES: TX pool full */
+	}
+	if(fake.last_sent_index >= 0 && payload[0] != (fake.last_sent_index + 1) % 128){
+		fake.index_gaps++;
+	}
+	fake.last_sent_index = payload[0];
 	if(fake.nb_notifications < MAX_NOTIFICATIONS){
 		memcpy(fake.notifications[fake.nb_notifications], payload, length);
 		fake.notification_length[fake.nb_notifications] = length;

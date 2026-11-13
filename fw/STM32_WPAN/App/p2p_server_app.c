@@ -489,6 +489,13 @@ void APP_BLE_Manage_ADS1299_event_exec(void)
 		}
 
 	    read_index = (read_index + 1) % PACKETBUFFER_DEPTH;
+
+	    /* Packets buffered while the BLE stack was refusing notifications: send them
+	     * too. The task is otherwise set once per new packet, so the backlog would never
+	     * be caught up and the ring buffer would overflow (~30 packets lost at once). */
+	    if (read_index != buffer_index) {
+	        UTIL_SEQ_SetTask( 1<<CFG_TASK_ADS_SAMPLE_ID, CFG_SCH_PRIO_0);
+	    }
 	}
 
 

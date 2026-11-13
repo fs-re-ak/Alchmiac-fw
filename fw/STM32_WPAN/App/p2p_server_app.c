@@ -27,6 +27,8 @@
 #include "app_ble.h"
 #include "gpios.h"
 #include "ads1299.h"
+#include "ads1118.h"
+#include "hermes_ble.h"
 #include "ism330.h"
 #include "lis3mdl.h"
 
@@ -65,7 +67,15 @@ typedef struct
 #define PACKETBUFFER_DEPTH 30
 #define NB_SAMPLES_PER_PACKET 10
 #define SAMPLE_SIZE 24
-#define PACKET_SIZE (NB_SAMPLES_PER_PACKET * SAMPLE_SIZE + 1)
+#define EEG_PACKET_SIZE (NB_SAMPLES_PER_PACKET * SAMPLE_SIZE + 1)
+
+/* PPG samples (int16 big-endian) appended after the EEG samples */
+#define PPG_NB_SAMPLES_PER_PACKET (NB_SAMPLES_PER_PACKET / PPG_DECIMATION)
+#define PPG_OFFSET EEG_PACKET_SIZE
+#define PACKET_SIZE (EEG_PACKET_SIZE + PPG_NB_SAMPLES_PER_PACKET * PPG_SAMPLE_SIZE)
+
+_Static_assert(NB_SAMPLES_PER_PACKET % PPG_DECIMATION == 0, "EEG packet must hold a whole number of PPG periods");
+_Static_assert(PACKET_SIZE <= NEW_NOTIFY_CHAR_VALUE_LENGTH, "EEG characteristic too small for the packet");
 
 #define MOTION_NB_SAMPLES_PER_PACKET 10
 #define MOTION_SAMPLE_SIZE sizeof(uint16_t)*3
@@ -375,6 +385,7 @@ void APP_BLE_Manage_ADS1299_event(void){
 		}
 
 		ADS1299_ReadSamples(statusBuffer, &buffered_packets_array[buffer_index][sample_index*SAMPLE_SIZE+1]);
+		ADS1118_PPG_OnEegSample(sample_index, &buffered_packets_array[buffer_index][PPG_OFFSET]);
 		sample_index++;
 
 		if(sample_index >= NB_SAMPLES_PER_PACKET){

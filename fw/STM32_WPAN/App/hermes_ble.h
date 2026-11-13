@@ -37,7 +37,8 @@ do {\
 
 
 
-#define NEW_NOTIFY_CHAR_VALUE_LENGTH    241
+/* 1 packet index + 10 EEG samples x 24 bytes + 2 PPG samples x 2 bytes */
+#define NEW_NOTIFY_CHAR_VALUE_LENGTH    245
 
 
 #endif /* APP_HERMES_BLE_H_ */

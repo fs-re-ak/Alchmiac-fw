@@ -1,0 +1,7 @@
+# Sorties de compilation STM32CubeIDE
+fw/Debug/
+fw/Release/
+
+# Caches et fichiers propres à la machine
+fw/.settings/language.settings.xml
+/.project

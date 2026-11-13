@@ -105,7 +105,11 @@ uint8_t APP_BLE_Send_EEGData_Notification(uint8_t *payload, uint8_t length){
 }
 
 uint8_t APP_BLE_Send_Event_Notification(event_packet_t *payload){ (void)payload; return 0; }
-uint8_t APP_BLE_Send_IMU_Notification(uint8_t *accel){ (void)accel; return 0; }
+uint8_t APP_BLE_Send_IMU_Notification(uint8_t *accel){
+	memcpy(fake.last_imu, accel, sizeof(fake.last_imu));
+	fake.nb_imu_notifications++;
+	return 0;
+}
 
 void UTIL_SEQ_RegTask(UTIL_SEQ_bm_t TaskId_bm, uint32_t Flags, void (*Task)(void)){
 	(void)TaskId_bm; (void)Flags; (void)Task;

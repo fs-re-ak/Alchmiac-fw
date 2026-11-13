@@ -48,6 +48,8 @@ typedef struct {
 	uint8_t  notifications[MAX_NOTIFICATIONS][NOTIFICATION_MAX];
 	uint8_t  notification_length[MAX_NOTIFICATIONS];
 	uint32_t pending_tasks;
+	int      nb_imu_notifications;
+	uint8_t  last_imu[18];
 } fake_state_t;
 
 extern fake_state_t fake;

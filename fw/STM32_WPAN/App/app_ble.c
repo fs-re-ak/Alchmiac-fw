@@ -527,7 +527,7 @@ static tBleStatus Add_EEG_Stream_Notify_Service(void)
     COPY_EEG_DATA_UUID(eeg_stream_char_uuid);
     ret = aci_gatt_add_char(BleApplicationContext.BleApplicationContext_legacy.eeg_service_handle,
                            UUID_TYPE_128, (Char_UUID_t *) eeg_stream_char_uuid,
-                           NEW_NOTIFY_CHAR_VALUE_LENGTH, //241
+                           NEW_NOTIFY_CHAR_VALUE_LENGTH, //245
                            CHAR_PROP_NOTIFY,
                            ATTR_PERMISSION_NONE,
 						   GATT_NOTIFY_ATTRIBUTE_WRITE,
@@ -546,7 +546,7 @@ static tBleStatus Add_EEG_Stream_Notify_Service(void)
     ret = aci_gatt_add_char(BleApplicationContext.BleApplicationContext_legacy.eeg_service_handle,
                            UUID_TYPE_128, (Char_UUID_t *) eeg_config_char_uuid,
                            4, // 4 bytes
-						   CHAR_PROP_WRITE_WITHOUT_RESP|CHAR_PROP_READ,
+						   CHAR_PROP_WRITE_WITHOUT_RESP|CHAR_PROP_READ|CHAR_PROP_NOTIFY, /* NOTIFY : AlchemiacPythonSDK s'y abonne */
                            ATTR_PERMISSION_NONE,
 						   GATT_NOTIFY_ATTRIBUTE_WRITE,
                            10,

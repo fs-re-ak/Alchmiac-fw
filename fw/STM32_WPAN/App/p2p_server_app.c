@@ -27,6 +27,8 @@
 #include "app_ble.h"
 #include "gpios.h"
 #include "ads1299.h"
+#include "ads1118.h"
+#include "hermes_ble.h"
 #include "ism330.h"
 #include "lis3mdl.h"
 
@@ -65,11 +67,49 @@ typedef struct
 #define PACKETBUFFER_DEPTH 30
 #define NB_SAMPLES_PER_PACKET 10
 #define SAMPLE_SIZE 24
-#define PACKET_SIZE (NB_SAMPLES_PER_PACKET * SAMPLE_SIZE + 1)
+#define EEG_PACKET_SIZE (NB_SAMPLES_PER_PACKET * SAMPLE_SIZE + 1)
+
+/* PPG samples (int16 big-endian) appended after the EEG samples */
+#define PPG_NB_SAMPLES_PER_PACKET (NB_SAMPLES_PER_PACKET / PPG_DECIMATION)
+#define PPG_OFFSET EEG_PACKET_SIZE
+#define PACKET_SIZE (EEG_PACKET_SIZE + PPG_NB_SAMPLES_PER_PACKET * PPG_SAMPLE_SIZE)
+
+_Static_assert(NB_SAMPLES_PER_PACKET % PPG_DECIMATION == 0, "EEG packet must hold a whole number of PPG periods");
+_Static_assert(PACKET_SIZE <= NEW_NOTIFY_CHAR_VALUE_LENGTH, "EEG characteristic too small for the packet");
 
 #define MOTION_NB_SAMPLES_PER_PACKET 10
 #define MOTION_SAMPLE_SIZE sizeof(uint16_t)*3
 #define MOTION_PACKET_SIZE (MOTION_NB_SAMPLES_PER_PACKET * MOTION_SAMPLE_SIZE)
+
+/*
+ * BLE transfer test pattern. NEVER enable it in a headset firmware.
+ * With BLE_TEST_PATTERN=1, the EEG, PPG and IMU values are replaced by 16-bit
+ * counters just before being sent, so that the receiving side can check the
+ * decoding (byte order, sign, wrap-around) and tell losses from corruption.
+ * The ADS1299 and the ADS1118 are still read: timing and SPI traffic are real.
+ *
+ * Counter n: +1 per EEG sample (250 Hz), starts at TEST_PATTERN_START at boot
+ * (first wrap after 1 s, then every 262 s).
+ *   EEG channel c (24-bit big-endian) : bytes [c, n >> 8, n & 0xFF] for c = 0..6
+ *                                       -> c * 65536 + n
+ *                                       bytes [0xFF, n >> 8, n & 0xFF] for c = 7
+ *                                       -> n - 65536 (negative: sign extension)
+ *   PPG (int16 big-endian)            : (int16_t)n of the EEG sample where the
+ *                                       real value is stored (indices 4 and 9)
+ * Counter m: +1 per IMU packet (50 Hz), same start value.
+ *   IMU field i = 0..8 (int16 little-endian, like the real data) : (int16_t)(m + i)
+ * The packet index is unchanged (0..127).
+ */
+#ifndef BLE_TEST_PATTERN
+#define BLE_TEST_PATTERN 0
+#endif
+
+#if BLE_TEST_PATTERN
+#warning "BLE_TEST_PATTERN enabled: EEG, PPG and IMU data are replaced by a test pattern"
+#define TEST_PATTERN_START          0xFF00u
+#define TEST_PATTERN_LAST_CH_TAG    0xFF
+#define EEG_NB_CHANNELS             (SAMPLE_SIZE / 3)
+#endif
 
 
 /* USER CODE END PD */
@@ -94,6 +134,37 @@ static event_packet_t current_event_payload;
 
 
 static uint8_t motion_packet[18] = {0};
+
+#if BLE_TEST_PATTERN
+static uint16_t test_pattern_eeg = TEST_PATTERN_START;
+static uint16_t test_pattern_imu = TEST_PATTERN_START;
+
+/* Overwrites one EEG sample (and its PPG value, if stored at this index). */
+static void test_pattern_fill_eeg(uint8_t *sample, uint8_t *ppg_field, uint8_t eeg_sample_index){
+	uint16_t n = test_pattern_eeg++;
+
+	for(uint8_t c = 0; c < EEG_NB_CHANNELS; c++){
+		sample[3*c]     = (c == EEG_NB_CHANNELS - 1) ? TEST_PATTERN_LAST_CH_TAG : c;
+		sample[3*c + 1] = (uint8_t)(n >> 8);
+		sample[3*c + 2] = (uint8_t)(n & 0xFF);
+	}
+	if(eeg_sample_index % PPG_DECIMATION == PPG_DECIMATION - 1){
+		uint8_t *ppg = &ppg_field[(eeg_sample_index / PPG_DECIMATION) * PPG_SAMPLE_SIZE];
+		ppg[0] = (uint8_t)(n >> 8);
+		ppg[1] = (uint8_t)(n & 0xFF);
+	}
+}
+
+static void test_pattern_fill_motion(uint8_t *packet){
+	uint16_t m = test_pattern_imu++;
+
+	for(uint8_t i = 0; i < sizeof(motion_packet) / sizeof(int16_t); i++){
+		uint16_t v = (uint16_t)(m + i);
+		packet[2*i]     = (uint8_t)(v & 0xFF);
+		packet[2*i + 1] = (uint8_t)(v >> 8);
+	}
+}
+#endif
 
 void SWA_Send_Notification(void);
 void SWB_Send_Notification(void);
@@ -344,6 +415,9 @@ void get_and_send_motion_samples(void){
 
 		memcpy(motion_packet,imu_sample,6*sizeof(int16_t));
 		memcpy(&motion_packet[sizeof(int16_t)*6],compass_sample,3*sizeof(int16_t));
+#if BLE_TEST_PATTERN
+		test_pattern_fill_motion(motion_packet);
+#endif
 
 		if(APP_BLE_Send_IMU_Notification((uint8_t*)motion_packet)!=0){
 			HAL_GPIO_WritePin(LED_A_GPIO_Port, LED_A_Pin, GPIO_PIN_SET);
@@ -375,6 +449,11 @@ void APP_BLE_Manage_ADS1299_event(void){
 		}
 
 		ADS1299_ReadSamples(statusBuffer, &buffered_packets_array[buffer_index][sample_index*SAMPLE_SIZE+1]);
+		ADS1118_PPG_OnEegSample(sample_index, &buffered_packets_array[buffer_index][PPG_OFFSET]);
+#if BLE_TEST_PATTERN
+		test_pattern_fill_eeg(&buffered_packets_array[buffer_index][sample_index*SAMPLE_SIZE+1],
+		                      &buffered_packets_array[buffer_index][PPG_OFFSET], sample_index);
+#endif
 		sample_index++;
 
 		if(sample_index >= NB_SAMPLES_PER_PACKET){

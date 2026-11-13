@@ -21,6 +21,9 @@
 #include "common_blesvc.h"
 #include "cmsis_compiler.h"
 
+/* Défini dans STM32_WPAN/App/app_ble.c ; requis depuis GCC 14 (implicit-function-declaration est une erreur) */
+void Hermes_App_Init(void);
+
 /* Private typedef -----------------------------------------------------------*/
 typedef struct
 {
